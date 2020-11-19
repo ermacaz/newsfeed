@@ -38,7 +38,7 @@ Rails.application.configure do
   #
   #
   config.web_socket_server_url = "wss://newsfeedapi.ermacaz.com/cable"
-  # config.action_cable.allowed_request_origins = ["https://newsfeedapi.ermacaz.com", "https://newsfeed.ermacaz.com"]
+  config.action_cable.allowed_request_origins = ["https://newsfeedapi.ermacaz.com", "https://newsfeed.ermacaz.com"]
 
 
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
