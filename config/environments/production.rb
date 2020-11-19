@@ -4,6 +4,8 @@ Rails.application.configure do
   # Code is not reloaded between requests.
   config.cache_classes = true
 
+  config.web_socket_server_url = "wss://newsfeedapi.ermacaz.com/cable"
+  config.action_cable.allowed_request_origins = ["https://newsfeedapi.ermacaz.com", "https://newsfeed.ermacaz.com"]
   # Eager load code on boot. This eager loads most of Rails and
   # your application in memory, allowing both threaded web servers
   # and those relying on copy on write to perform better.
