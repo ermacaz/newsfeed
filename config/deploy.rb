@@ -33,7 +33,7 @@ set :log_level,     :debug
 set :keep_releases, 5
 
 set :linked_files, %w{config/database.yml config/cable.yml config/master.key}
-set :linked_dirs,  %w{bin log tmp/pids tmp/cache tmp/sockets vendor/bundle public/system}
+# set :linked_dirs,  %w{bin log tmp/pids tmp/cache tmp/sockets vendor/bundle public/system}
 
 namespace :puma do
   desc 'Create Directories for Puma Pids and Socket'
@@ -75,7 +75,7 @@ namespace :deploy do
   end
 
   before :starting,     :check_revision
-  after  :finishing,    :compile_assets
+  # after  :finishing,    :compile_assets
   after  :finishing,    :cleanup
   after  :finishing,    :restart
 end
