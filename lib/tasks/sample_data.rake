@@ -26,5 +26,18 @@ namespace :db do
     NewsSource.create(name: 'Kotaku',
                       url: 'https://kotaku.com',
                       feed_url: 'https://kotaku.com/rss')
-  end
+    NewsSource.create(name: 'PC GAMER',
+                      url: 'https://www.pcgamer.com/',
+                      feed_url: 'https://www.pcgamer.com/rss/')
+    NewsSource.create(name: 'The Verge',
+                      url: 'https://www.theverge.com',
+                      feed_url: 'https://www.theverge.com/rss/frontpage')
+
+    NewsSource.create(name: 'No Recipes',
+                      url: 'https://norecipes.com',
+                      feed_url: 'https://norecipes.com/feed')
+    NewsSource.create(name: 'Just One Cookbook',
+                      url: 'https://www.justonecookbook.com',
+                      feed_url: 'https://www.justonecookbook.com/rss')
+  end 
 end
