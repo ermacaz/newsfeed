@@ -17,6 +17,9 @@ namespace :db do
     NewsSource.create(name: 'Huffington Post',
                       url: 'https://huffingtonpost.com',
                       feed_url: 'https://www.huffingtonpost.com/feeds/index.xml')
+    NewsSource.create(name: 'Phoenix New Times',
+                      url: 'https://www.phoenixnewtimes.com/',
+                      feed_url: 'https://www.phoenixnewtimes.com/index.rss')
     NewsSource.create(name: 'Slashdot',
       url: 'https://slashdot.org',
       feed_url: 'http://rss.slashdot.org/Slashdot/slashdot/to')
