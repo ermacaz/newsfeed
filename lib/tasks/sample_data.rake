@@ -32,12 +32,14 @@ namespace :db do
     NewsSource.create(name: 'The Verge',
                       url: 'https://www.theverge.com',
                       feed_url: 'https://www.theverge.com/rss/frontpage')
-
     NewsSource.create(name: 'No Recipes',
                       url: 'https://norecipes.com',
                       feed_url: 'https://norecipes.com/feed')
     NewsSource.create(name: 'Just One Cookbook',
                       url: 'https://www.justonecookbook.com',
                       feed_url: 'https://www.justonecookbook.com/rss')
+    NewsSource.create(name: 'NHK EasyNews',
+                      url: 'https://www3.nhk.or.jp/news/easy/index.html',
+                      feed_url: 'https://www.reddit.com/r/NHKEasyNews/.rss')
   end 
 end
