@@ -11,19 +11,19 @@ class NewsWorker
         entry.keys.each do |key|
           case key.to_s
           when 'title'
-            story['title'] = entry[key].truncate(125).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?')
+            story['title'] = entry[key].truncate(125).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
           when 'link'
-            story['link'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?')
+            story['link'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
           when 'description'
             unless source.name.match?(/Google|Slashdot|Hacker/)
-              story['description'] = entry[key].truncate(250).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?')
+              story['description'] = entry[key].truncate(250).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
             end
           when 'media_content_url', 'media_thumbnail_url'
-            story['media_url'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?')
+            story['media_url'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
           when 'media_content_url', 'media_thumbnail_url'
-            story['media_url'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?')
+            story['media_url'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
           when 'content'
-            story['content'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?')
+            story['content'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
           end
         end
         entry_set[:stories] << story
