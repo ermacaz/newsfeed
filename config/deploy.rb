@@ -48,6 +48,13 @@ namespace :puma do
 end
 
 namespace :deploy do
+  desc 'load sources from sample_data.rake'
+  task :load_sources do
+    on roles(:app) do
+      execute "cd #{release_path} && GEM_HOME=/usr/local/rvm/gems/ruby-2.6.5 SHELL=/bin/bash PATH=/usr/local/rvm/rubies/ruby-2.6.5/bin:$PATH DISABLE_DATABASE_ENVIRONMENT_CHECK=1 RAILS_ENV=production bin/rails db:populate"      
+      execute "cd #{release_path} && GEM_HOME=/usr/local/rvm/gems/ruby-2.6.5 SHELL=/bin/bash PATH=/usr/local/rvm/rubies/ruby-2.6.5/bin:$PATH RAILS_ENV=production bin/rails runner 'NewsWorker.new.scrape'"      
+    end
+  end
   desc "Make sure local git is in sync with remote."
   task :check_revision do
     on roles(:app) do
@@ -77,6 +84,7 @@ namespace :deploy do
   before :starting,     :check_revision
   # after  :finishing,    :compile_assets
   after  :finishing,    :cleanup
+  after  :finishing,     :load_sources
   after  :finishing,    :restart
 end
 
