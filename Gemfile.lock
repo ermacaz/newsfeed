@@ -192,6 +192,7 @@ DEPENDENCIES
   capistrano3-puma
   httparty
   listen (~> 3.2)
+  nokogiri
   puma (~> 4.1)
   rack-cors
   rails (~> 6.0.3, >= 6.0.3.4)

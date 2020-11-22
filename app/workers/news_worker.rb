@@ -1,6 +1,7 @@
 class NewsWorker
   require 'simple-rss'
   require 'open-uri'
+  require 'nokogiri'
   def scrape
     set = []
     NewsSource.all.each do |source|
@@ -15,13 +16,24 @@ class NewsWorker
           when 'link'
             story['link'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
           when 'description'
-            unless source.name.match?(/Google|Slashdot|Hacker/)
-              story['description'] = entry[key].truncate(250).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
+            case source.name
+            when 'Just One Cookbook'
+              story['media_url'] = (Nokogiri.HTML(entry[key]).xpath('//img').first.attr('src').encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
+              story['description'] = (Nokogiri.HTML(entry[key]).xpath("//p")[1].content.truncate(250).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
+            when 'No Recipes'
+              story['description'] = (Nokogiri.HTML(entry[key]).xpath("//p").first.content.truncate(250).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
+            when 'Kotaku'
+              story['media_url'] = (Nokogiri.HTML(entry[key]).xpath('//img').first.attr('src').encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
+              story['description'] = (Nokogiri.HTML(entry[key]).xpath("//p").first.content.truncate(250).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
+            else
+              unless source.name.match?(/Google|Slashdot|Hacker/)
+                story['description'] = entry[key].truncate(250).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
+              end
             end
           when 'media_content_url', 'media_thumbnail_url'
-            story['media_url'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
-          when 'media_content_url', 'media_thumbnail_url'
-            story['media_url'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
+            else
+              story['media_url'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
+            end
           when 'content'
             story['content'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
           end
