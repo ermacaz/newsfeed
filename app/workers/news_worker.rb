@@ -31,11 +31,7 @@ class NewsWorker
               end
             end
           when 'media_content_url', 'media_thumbnail_url'
-            else
-              story['media_url'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
-            end
-          when 'content'
-            story['content'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
+            story['media_url'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
           end
         end
         entry_set[:stories] << story
