@@ -35,6 +35,10 @@ namespace :db do
     NewsSource.create(name: 'The Verge',
                       url: 'https://www.theverge.com',
                       feed_url: 'https://www.theverge.com/rss/frontpage')
+    NewsSource.create(name: 'Ars Technica',
+                      url: 'https://arstechnica.com',
+                      feed_url: 'https://arstechnica.com/rss'
+                      )
     NewsSource.create(name: 'No Recipes',
                       url: 'https://norecipes.com',
                       feed_url: 'https://norecipes.com/feed')
