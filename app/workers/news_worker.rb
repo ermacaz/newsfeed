@@ -7,7 +7,7 @@ class NewsWorker
     NewsSource.all.each do |source|
       feed = SimpleRSS.parse open(source.feed_url, 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:82.0) Gecko/20100101 Firefox/82.0')
       entry_set = {:source_name=>source.name, :source_url=>source.url, :stories=>[]}
-      feed.entries.first(10).each do |entry|
+      feed.entries.first(25).each do |entry|
         story = {}
         entry.keys.each do |key|
           case key.to_s
