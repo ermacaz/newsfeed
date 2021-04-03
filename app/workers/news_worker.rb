@@ -38,7 +38,7 @@ class NewsWorker
       end
       set << entry_set
     end
-    REDIS.call("SET", "newsfeed", set.to_json)
+    REDIS.call("SET", "newsfeed", set.to_json.gsub('&amp;','&').gsub('&quot;','"'))
     ActionCable.server.broadcast 'news_sources_channel', JSON.parse(REDIS.call('get', 'newsfeed'))
     return true
   end
