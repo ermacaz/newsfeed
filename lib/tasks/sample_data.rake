@@ -14,9 +14,9 @@ namespace :db do
     NewsSource.create(name: 'Washington Post',
                       url: "https://washingtonpost.com",
                       feed_url: "http://feeds.washingtonpost.com/rss/world")
-    NewsSource.create(name: 'Huffington Post',
-                      url: 'https://huffingtonpost.com',
-                      feed_url: 'https://www.huffingtonpost.com/feeds/index.xml')
+    # NewsSource.create(name: 'Huffington Post',
+    #                   url: 'https://huffingtonpost.com',
+    #                   feed_url: 'https://www.huffingtonpost.com/feeds/index.xml')
     NewsSource.create(name: 'Phoenix New Times',
                       url: 'https://www.phoenixnewtimes.com/',
                       feed_url: 'https://www.phoenixnewtimes.com/index.rss')
@@ -39,9 +39,9 @@ namespace :db do
                       url: 'https://arstechnica.com',
                       feed_url: 'https://arstechnica.com/rss'
                       )
-    NewsSource.create(name: 'No Recipes',
-                      url: 'https://norecipes.com',
-                      feed_url: 'https://norecipes.com/feed')
+    # NewsSource.create(name: 'No Recipes',
+    #                   url: 'https://norecipes.com',
+    #                   feed_url: 'https://norecipes.com/feed')
     NewsSource.create(name: 'Just One Cookbook',
                       url: 'https://www.justonecookbook.com',
                       feed_url: 'https://www.justonecookbook.com/rss')
