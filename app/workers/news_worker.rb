@@ -5,7 +5,12 @@ class NewsWorker
   def scrape
     set = []
     NewsSource.all.each do |source|
-      feed = SimpleRSS.parse open(source.feed_url, 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:82.0) Gecko/20100101 Firefox/82.0')
+      puts source.name
+      feed = (SimpleRSS.parse open(source.feed_url, 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:82.0) Gecko/20100101 Firefox/82.0') rescue nil)
+      # if feed.nil?
+      #   feed =  (SimpleRSS.parse`curl -L -H 'Referer: http://css-tricks.com/forums/topic/font-face-in-base64-is-cross-browser-compatible/' #{feed.url}` rescue nil)
+      # end
+      next if feed.nil?
       entry_set = {:source_name=>source.name, :source_url=>source.url, :stories=>[]}
       feed.entries.first(25).each do |entry|
         story = {}
@@ -15,7 +20,7 @@ class NewsWorker
             story['title'] = entry[key].truncate(125).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
           when 'link'
             story['link'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
-          when 'description'
+          when 'description', 'content'
             case source.name
             when 'Just One Cookbook'
               story['media_url'] = (Nokogiri.HTML(entry[key]).xpath('//img').first.attr('src').encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
@@ -23,7 +28,6 @@ class NewsWorker
             when 'No Recipes'
               story['description'] = (Nokogiri.HTML(entry[key]).xpath("//p").first.content.truncate(250).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
             when 'Kotaku'
-              story['media_url'] = (Nokogiri.HTML(entry[key]).xpath('//img').first.attr('src').encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
               story['description'] = (Nokogiri.HTML(entry[key]).xpath("//p").first.content.truncate(250).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
             else
               unless source.name.match?(/Google|Slashdot|Hacker/)
