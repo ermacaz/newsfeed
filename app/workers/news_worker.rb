@@ -2,6 +2,7 @@ class NewsWorker
   require 'simple-rss'
   require 'open-uri'
   require 'nokogiri'
+  require 'cgi'
   def scrape
     set = []
     NewsSource.all.each do |source|
@@ -19,19 +20,19 @@ class NewsWorker
           when 'title'
             story['title'] = entry[key].truncate(125).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
           when 'link'
-            story['link'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
+            story['link'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('reddit.com','teddit.net')
           when 'description', 'content'
             case source.name
             when 'Just One Cookbook'
               story['media_url'] = (Nokogiri.HTML(entry[key]).xpath('//img').first.attr('src').encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
-              story['description'] = (Nokogiri.HTML(entry[key]).xpath("//p")[1].content.truncate(250).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
+              story['description'] =  CGI.unescapeHTML((Nokogiri.HTML(entry[key]).xpath("//p")[1].content.truncate(250).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil))
             when 'No Recipes'
-              story['description'] = (Nokogiri.HTML(entry[key]).xpath("//p").first.content.truncate(250).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
+              story['description'] =  CGI.unescapeHTML((Nokogiri.HTML(entry[key]).xpath("//p").first.content.truncate(250).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil))
             when 'Kotaku'
-              story['description'] = (Nokogiri.HTML(entry[key]).xpath("//p").first.content.truncate(250).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
+              story['description'] =  CGI.unescapeHTML((Nokogiri.HTML(entry[key]).xpath("//p").first.content.truncate(250).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil))
             else
               unless source.name.match?(/Google|Slashdot|Hacker/)
-                story['description'] = entry[key].truncate(250).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
+                story['description'] = CGI.unescapeHTML(entry[key].truncate(250).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe)
               end
             end
           when 'media_content_url', 'media_thumbnail_url'
