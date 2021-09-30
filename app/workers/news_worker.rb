@@ -5,9 +5,9 @@ class NewsWorker
   require 'cgi'
   def scrape
     set = []
-    NewsSource.all.each do |source|
+    NewsSource.active.each do |source|
       puts source.name
-      feed = (SimpleRSS.parse open(source.feed_url, 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:82.0) Gecko/20100101 Firefox/82.0') rescue nil)
+      feed = (SimpleRSS.parse open(source.feed_url, 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36') rescue nil)
       # if feed.nil?
       #   feed =  (SimpleRSS.parse`curl -L -H 'Referer: http://css-tricks.com/forums/topic/font-face-in-base64-is-cross-browser-compatible/' #{feed.url}` rescue nil)
       # end
