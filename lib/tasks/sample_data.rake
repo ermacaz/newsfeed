@@ -4,7 +4,7 @@ namespace :db do
     Rake::Task["db:reset"].invoke
     NewsSource.create(name: 'Reddit',
                       url: 'https://reddit.com',
-                      feed_url: 'https://www.reddit.com/.rss')
+                      feed_url: 'https://www.reddit.com/.rss', :enabled=>false)
     NewsSource.create(name: 'Google News',
                       url: 'https://news.google.com',
                       feed_url: 'https://news.google.com/?output=rss')
@@ -19,10 +19,7 @@ namespace :db do
     #                   feed_url: 'https://www.huffingtonpost.com/feeds/index.xml')
     NewsSource.create(name: 'Phoenix New Times',
                       url: 'https://www.phoenixnewtimes.com/',
-                      feed_url: 'https://www.phoenixnewtimes.com/index.rss')
-    NewsSource.create(name: 'AZ Mirror',
-                      url: 'https://www.azmirror.com/',
-                      feed_url: 'https://www.azmirror.com/feed/')
+                      feed_url: 'https://www.phoenixnewtimes.com/phoenix/Rss.xml')
     NewsSource.create(name: 'Slashdot',
       url: 'https://slashdot.org',
       feed_url: 'http://rss.slashdot.org/Slashdot/slashdot/to')
@@ -50,6 +47,6 @@ namespace :db do
                       feed_url: 'https://www.justonecookbook.com/rss')
     NewsSource.create(name: 'NHK EasyNews',
                       url: 'https://www3.nhk.or.jp/news/easy/index.html',
-                      feed_url: 'https://www.reddit.com/r/NHKEasyNews/.rss')
+                      feed_url: 'https://www.reddit.com/r/NHKEasyNews/.rss', :enabled=>false)
   end 
 end
