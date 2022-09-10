@@ -4,7 +4,7 @@ namespace :db do
     Rake::Task["db:reset"].invoke
     NewsSource.create(name: 'Reddit',
                       url: 'https://reddit.com',
-                      feed_url: 'https://www.reddit.com/.rss', :enabled=>false)
+                      feed_url: 'https://www.reddit.com/.rss')
     NewsSource.create(name: 'Google News',
                       url: 'https://news.google.com',
                       feed_url: 'https://news.google.com/?output=rss')
