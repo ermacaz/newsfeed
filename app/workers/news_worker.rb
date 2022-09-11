@@ -31,7 +31,7 @@ class NewsWorker
           entry.keys.each do |key|
             case key.to_s
             when 'title'
-              story['title'] = entry[key].truncate(125).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
+              story['title'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').gsub('&quot;', '"').html_safe
             when 'link'
               story['link'] ||= entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('reddit.com','teddit.net')
             when 'description', 'content'
@@ -56,6 +56,15 @@ class NewsWorker
             article = Nokogiri.HTML(HTTParty.get(story['link'], :headers=>{'User-agent'=>'ermacaz'}).body)
             parts = nil
             case source.name
+            when 'Reddit'
+              if article.css('#post').first.css('.image').first
+                story['content'] = ("https://teddit.net" + Nokogiri.HTML(article.css('#post').first.css('.image').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
+                story['media_url'] = story['content'] unless story['media_url']
+              elsif article.css('#post').first.css('.video').first
+                story['content'] = ("https://teddit.net" + Nokogiri.HTML(article.css('#post').first.css('.video').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
+              elsif article.css('.usertext-body').first
+                story['content'] = (article.css('.usertext-body').first.content.split("\n\n") rescue nil)
+              end
             when 'Ars Technica'
               parts = article.css('.article-content').first.xpath("//p").map(&:content).drop(4)
               comment_part = parts.select {|a| a.match?(/^You must login or create an account to comment/)}.first
@@ -76,7 +85,11 @@ class NewsWorker
             when 'Kotaku'
               parts = article.css('.js_post-content').first.content.gsub(/AdvertisementScreenshot: [A-z]+ \/ KotakuAdvertisement/, ' ').split("\n\t\n\t\t\n\t\t\t\n\t\t\n\t\n").map {|a| a.split('Advertisement')}.flatten
             else
-              1==1
+              if article.xpath("//article").any?
+                parts = (article.xpath("//article").first.xpath('//p').map(&:content) rescue article.xpath("//article").first.content.split("\n\n"))
+              else
+                parts = article.xpath('//p').map(&:content)
+              end
             end
             if parts
               parts = parts.map(&:strip).reject(&:blank?).reject {|a| a.length < 5 || a.match?(/^Credit\.\.\.$|^Photographs by|10 gift articles to give each month/)}
