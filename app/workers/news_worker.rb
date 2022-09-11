@@ -12,7 +12,7 @@ class NewsWorker
       if source.name == 'No Recipes'
         feed = (SimpleRSS.parse HTTParty.get(source.feed_url, :headers=>{'User-agent'=>'ermacaz'}) rescue nil)
       else
-        feed = (SimpleRSS.parse open(source.feed_url, 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36') rescue nil)
+        feed = (SimpleRSS.parse URI.open(source.feed_url, 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36') rescue nil)
       end
       # if feed.nil?
       #   feed =  (SimpleRSS.parse`curl -L -H 'Referer: http://css-tricks.com/forums/topic/font-face-in-base64-is-cross-browser-compatible/' #{feed.url}` rescue nil)
@@ -56,18 +56,32 @@ class NewsWorker
             article = Nokogiri.HTML(HTTParty.get(story['link'], :headers=>{'User-agent'=>'ermacaz'}).body)
             parts = nil
             case source.name
+            when 'Ars Technica'
+              parts = article.css('.article-content').first.xpath("//p").map(&:content).drop(4)
+              comment_part = parts.select {|a| a.match?(/^You must login or create an account to comment/)}.first
+              if comment_part # everything here and after is removable
+                index = parts.index(comment_part)
+                parts = parts.reverse.drop(parts.length-index).reverse
+              end
             when 'New York Times', 'Washington Post'
               parts = article.xpath("//p").map(&:content).reject {|b| b.match?(/^Advertisement$|^Supported by$|^Send any friend a story$/)}
             when 'Phoenix New Times'
               parts = article.css('.fdn-content-body').first.content.strip.split("\n\n")
+            when 'PC GAMER'
+              parts = article.css('#article-body').first.xpath("//p").map(&:content).map {|a| a.gsub('(opens in new tab)','')}.reject {|a| a.match?(/^PC Gamer is part of Future US Inc|^PC Gamer is supported by its audience|Future US, Inc. Full 7th Floor/)}
             when 'Slashdot'
               parts = article.css('.body').first.content.strip.split("\n\n")
+            when 'The Verge'
+              parts = article.css('.c-entry-content').first.xpath("//p").map(&:content).reject {|a| a.match?(/^PC Gamer is part of Future US Inc|^PC Gamer is supported by its audience|Future US, Inc. Full 7th Floor/)}
             when 'Kotaku'
               parts = article.css('.js_post-content').first.content.gsub(/AdvertisementScreenshot: [A-z]+ \/ KotakuAdvertisement/, ' ').split("\n\t\n\t\t\n\t\t\t\n\t\t\n\t\n").map {|a| a.split('Advertisement')}.flatten
             else
               1==1
             end
-            story['content'] = parts if parts
+            if parts
+              parts = parts.map(&:strip).reject(&:blank?).reject {|a| a.length < 5 || a.match?(/^Credit\.\.\.$|^Photographs by|10 gift articles to give each month/)}
+              story['content'] = parts if parts.any?
+            end
           rescue Exception=>e
             1==1
           end
@@ -80,7 +94,7 @@ class NewsWorker
     REDIS.call("SET", "newsfeed", set.to_json)
     # remove any stores not found when researching
     REDIS.multi do |r|
-      current_cached_stores.each {|c| r.hdel("newsfeed_cached_stores", c)}
+      current_cached_stores.each {|c| r.hdel("newsfeed_cached_stories", c)}
     end
     ActionCable.server.broadcast 'news_sources_channel', JSON.parse(REDIS.call('get', 'newsfeed'))
     return true
