@@ -53,7 +53,7 @@ class NewsWorker
             end
           end
           begin
-            article = Nokogiri.HTML(HTTParty.get(story['link'], :headers=>{'User-agent'=>'ermacaz'}))
+            article = Nokogiri.HTML(HTTParty.get(story['link'], :headers=>{'User-agent'=>'ermacaz'}).body)
             parts = nil
             case source.name
             when 'New York Times', 'Washington Post'
@@ -79,7 +79,9 @@ class NewsWorker
     end
     REDIS.call("SET", "newsfeed", set.to_json)
     # remove any stores not found when researching
-    REDIS.del(current_cached_stores) if current_cached_stores.any?
+    REDIS.multi do |r|
+      current_cached_stores.each {|c| r.hdel("newsfeed_cached_stores", c)}
+    end
     ActionCable.server.broadcast 'news_sources_channel', JSON.parse(REDIS.call('get', 'newsfeed'))
     return true
   end
