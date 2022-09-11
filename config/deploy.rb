@@ -68,7 +68,7 @@ task :deploy do
     command %{export PATH=:/usr/local/rvm/rubies/ruby-3.1.2/bin:$PATH}
     command %{bundle config set --local path 'vendor/bundle'}
     invoke :"bundle:install"
-    invoke :'rails:db_migrate'
+    invoke :'rails:db_populate'
     command %{mkdir -p tmp/pids}
     invoke :'deploy:cleanup'
     
