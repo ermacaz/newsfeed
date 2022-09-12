@@ -68,7 +68,7 @@ task :deploy do
     command %{export PATH=:/usr/local/rvm/rubies/ruby-3.1.2/bin:$PATH}
     command %{bundle config set --local path 'vendor/bundle'}
     invoke :"bundle:install"
-    invoke :'rails:db_populate'
+    command 'DISABLE_DATABASE_ENVIRONMENT_CHECK=1 RAILS_ENV=production bin/rails db:populate'
     command %{mkdir -p tmp/pids}
     invoke :'deploy:cleanup'
     
