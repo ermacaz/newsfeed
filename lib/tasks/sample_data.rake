@@ -5,18 +5,23 @@ namespace :db do
     NewsSource.create(name: 'Reddit',
                       url: 'https://reddit.com',
                       feed_url: 'https://www.reddit.com/.rss')
-    NewsSource.create(name: 'Google News',
-                      url: 'https://news.google.com',
-                      feed_url: 'https://news.google.com/?output=rss')
     NewsSource.create(name: 'New York Times',
                       url: 'https://nytimes.com',
                       feed_url: 'http://feeds.feedburner.com/nytimes/QwEB')
     NewsSource.create(name: 'Washington Post',
                       url: "https://washingtonpost.com",
                       feed_url: "http://feeds.washingtonpost.com/rss/world")
+    NewsSource.create(name: 'Google News',
+                      url: 'https://news.google.com',
+                      feed_url: 'https://news.google.com/?output=rss')
     # NewsSource.create(name: 'Huffington Post',
     #                   url: 'https://huffingtonpost.com',
     #                   feed_url: 'https://www.huffingtonpost.com/feeds/index.xml')
+    NewsSource.create(name: 'AZ Central',
+                      url: 'https://azcentral.com',
+                      feed_url: "https://rssfeeds.azcentral.com/phoenix/travelandexplore&x=1;https://rssfeeds.azcentral.com/phoenix/dining&x=1;https://rssfeeds.azcentral.com/phoenix/events&x=1;https://rssfeeds.azcentral.com/phoenix/thingstodo&x=1;https://rssfeeds.azcentral.com/phoenix/thingstodo&x=1;http://rssfeeds.azcentral.com/phoenix/local&x=1",
+                      multiple_feeds: true
+                      )
     NewsSource.create(name: 'Phoenix New Times',
                       url: 'https://www.phoenixnewtimes.com/',
                       feed_url: 'https://www.phoenixnewtimes.com/phoenix/Rss.xml')
@@ -47,6 +52,6 @@ namespace :db do
                       feed_url: 'https://www.justonecookbook.com/rss')
     NewsSource.create(name: 'NHK EasyNews',
                       url: 'https://www3.nhk.or.jp/news/easy/index.html',
-                      feed_url: 'https://www.reddit.com/r/NHKEasyNews/.rss', :enabled=>false)
+                      feed_url: 'https://www.reddit.com/r/NHKEasyNews/.rss')
   end 
 end

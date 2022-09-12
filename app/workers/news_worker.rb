@@ -9,11 +9,21 @@ class NewsWorker
     set = []
     NewsSource.active.each do |source|
       puts source.name
-      if source.name == 'No Recipes'
-        feed = (SimpleRSS.parse HTTParty.get(source.feed_url, :headers=>{'User-agent'=>'ermacaz'}) rescue nil)
+      if source.multiple_feeds
+        feed_urls = source.feed_url.split(";")
+        feeds = []
+        feed_urls.each do |feed_url|
+          feeds << (SimpleRSS.parse URI.open(feed_url, 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36') rescue nil)
+        end
+        feed = feeds.map {|f| f.entries.first(25)}.flatten.uniq {|x| x[:title]}.sort {|x,y| y[:pubDate] <=> x[:pubDate]}.first(25)
       else
-        feed = (SimpleRSS.parse URI.open(source.feed_url, 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36') rescue nil)
+        if source.name == 'No Recipes'
+          feed = (SimpleRSS.parse HTTParty.get(source.feed_url, :headers=>{'User-agent'=>'ermacaz'}) rescue nil)
+        else
+          feed = (SimpleRSS.parse URI.open(source.feed_url, 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36') rescue nil)
+        end
       end
+     
       # if feed.nil?
       #   feed =  (SimpleRSS.parse`curl -L -H 'Referer: http://css-tricks.com/forums/topic/font-face-in-base64-is-cross-browser-compatible/' #{feed.url}` rescue nil)
       # end
@@ -21,7 +31,11 @@ class NewsWorker
       entry_set = {:source_name=>source.name, :source_url=>source.url, :stories=>[]}
       feed.entries.first(25).each do |entry|
         story = {}
-        story['link'] = entry[:link].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('reddit.com','teddit.net')
+        if source.name == 'AZ Central'
+          story['link'] = entry[:feedburner_origLink].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('reddit.com','teddit.net')
+        else
+          story['link'] = entry[:link].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('reddit.com','teddit.net')
+        end
         link_hash = Digest::MD5.hexdigest story['link']
         if current_cached_stores.include?(link_hash)
           store = REDIS.hget("newsfeed_cached_stories", link_hash)
@@ -31,9 +45,7 @@ class NewsWorker
           entry.keys.each do |key|
             case key.to_s
             when 'title'
-              story['title'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').gsub('&quot;', '"').html_safe
-            when 'link'
-              story['link'] ||= entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('reddit.com','teddit.net')
+              story['title'] = CGI.unescapeHTML(entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').gsub('&quot;', '"')).html_safe
             when 'description', 'content'
               case source.name
               when 'Just One Cookbook'
@@ -43,9 +55,20 @@ class NewsWorker
                 story['description'] =  CGI.unescapeHTML((Nokogiri.HTML(entry[key]).xpath("//p").first.content.truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil))
               when 'Kotaku'
                 story['description'] =  CGI.unescapeHTML((Nokogiri.HTML(entry[key]).xpath("//p").first.content.truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil))
+                story['media_url'] = (Nokogiri.HTML(CGI.unescapeHTML(entry[:description])).xpath('//img').attribute('src').to_s rescue nil)
+              when 'AZ Central'
+                story['description'] = CGI.unescapeHTML(entry[:description].truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe)
+                story['media_url'] = entry[:content]
               else
                 unless source.name.match?(/Google|Slashdot|Hacker/)
                   story['description'] = CGI.unescapeHTML(entry[key].truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe)
+                end
+                if source.name.match?(/Phoenix New Times/)
+                  story['media_url'] = (Nokogiri.HTML(CGI.unescapeHTML(entry[:description])).xpath('//img').attribute('src').to_s rescue nil)
+                elsif source.name.match?(/Verge/)
+                  story['media_url'] = (Nokogiri.HTML(CGI.unescapeHTML(entry[:content])).xpath('//img').attribute('src').to_s rescue nil)
+                elsif source.name.match?(/Ars Tech/)
+                  story['media_url'] = (Nokogiri.HTML(CGI.unescapeHTML(entry[:content_encoded])).xpath('//img').attribute('src').to_s rescue nil)
                 end
               end
             when 'media_content_url', 'media_thumbnail_url'
@@ -53,7 +76,12 @@ class NewsWorker
             end
           end
           begin
-            article = Nokogiri.HTML(HTTParty.get(story['link'], :headers=>{'User-agent'=>'ermacaz'}).body)
+            case source.name
+            when 'AZ Central'
+              article = Nokogiri.HTML(entry[:content_encoded])
+            else
+              article = Nokogiri.HTML(HTTParty.get(story['link'], :headers=>{'User-agent'=>'ermacaz'}).body)
+            end
             parts = nil
             case source.name
             when 'Reddit'
