@@ -114,10 +114,8 @@ class NewsWorker
               parts = article.css('#article-body').first.xpath("//p").map(&:content).map {|a| a.gsub('(opens in new tab)','')}.reject {|a| a.match?(/^PC Gamer is part of Future US Inc|^PC Gamer is supported by its audience|Future US, Inc. Full 7th Floor/)}
             when 'Slashdot'
               parts = article.css('.body').first.content.strip.split("\n\n")
-            when 'The Verge'
-              parts = article.css('.c-entry-content').first.xpath("//p").map(&:content).reject {|a| a.match?(/^PC Gamer is part of Future US Inc|^PC Gamer is supported by its audience|Future US, Inc. Full 7th Floor/)}
             when 'Kotaku'
-              parts = article.css('.js_post-content').first.content.gsub(/AdvertisementScreenshot: [A-z]+ \/ KotakuAdvertisement/, ' ').split("\n\t\n\t\t\n\t\t\t\n\t\t\n\t\n").map {|a| a.split('Advertisement')}.flatten
+              parts = article.css('.js_post-content p').map {|a| a.content.gsub(/AdvertisementScreenshot: [A-z]+ \/ KotakuAdvertisement/, ' ')}
             else
               if article.xpath("//article").any?
                 parts = (article.xpath("//article").first.xpath('//p').map(&:content) rescue article.xpath("//article").first.content.split("\n\n"))
@@ -131,16 +129,25 @@ class NewsWorker
               elsif source.name == 'NHK'
                 img_src = (source.url + '/news/html/' + article.xpath("//img")[2]&.attribute('src')&.to_s.gsub('../','') rescue nil)
                 img_src = nil if img_src.match?(/noimg_default/)
+              elsif source.name == "No Recipes"
+                img_src = article.xpath("//img")[5]&.attribute('src')&.to_s
               else
                 img_src = article.xpath("//img")&.first&.attribute('src')&.to_s
               end
-              if img_src&.match?(/^\//)
-                img_src = source.url + img_src
+              if img_src&.match?(/^\//) && source.name != 'Slashdot'
+                if source.name == 'Hacker News'
+                  img_src = nil
+                else
+                  img_src = source.url + img_src
+                end
+              end
+              if img_src&.match?(/favicon/) || !img_src&.match?(/png$|jpg$|jpeg$|gif$|webp$|webm$/)
+                img_src = nil
               end
               story['media_url'] = img_src if img_src&.strip&.present?
             end
             if parts
-              parts = parts.map(&:strip).reject(&:blank?).reject {|a| a.length < 5 || a.match?(/^Credit\.\.\.$|^Photographs by|10 gift articles to give each month/)}
+              parts = parts.map(&:strip).reject(&:blank?).reject {|a| a.length < 5 || a.match?(/^Follow Al Jazeera|^Sponsor Message|^Sign in|First Look Institute|^Credit\.\.\.$|^Photographs by|10 gift articles to give each month/)}
               story['content'] = parts if parts.any?
             end
           rescue Exception=>e
