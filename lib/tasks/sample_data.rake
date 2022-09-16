@@ -2,6 +2,11 @@ namespace :db do
   desc 'Fill database with sources'
   task populate: :environment do
     Rake::Task["db:reset"].invoke
+    begin
+      REDIS.del("newsfeed_cached_stories")
+    rescue Exception=>e
+      puts e.message
+    end
     NewsSource.create(name: 'Reddit',
                       url: 'https://reddit.com',
                       feed_url: 'https://www.reddit.com/.rss')
@@ -14,6 +19,18 @@ namespace :db do
     NewsSource.create(name: 'Google News',
                       url: 'https://news.google.com',
                       feed_url: 'https://news.google.com/?output=rss')
+    NewsSource.create(name: 'NPR',
+                      url: 'https://npr.org',
+                      feed_url: 'https://feeds.npr.org/1001/rss.xml')
+    NewsSource.create(name: 'The Intercept',
+                      url: 'https://theintercept.com/',
+                      feed_url: 'https://theintercept.com/feed/?lang=en')
+    NewsSource.create(name: 'NHK',
+                      url: 'https://www3.nhk.or.jp/',
+                      feed_url: 'http://www3.nhk.or.jp/rss/news/cat0.xml')
+    NewsSource.create(name: 'Al Jazeera',
+                      url: 'https://www.aljazeera.com/',
+                      feed_url: 'https://www.aljazeera.com/xml/rss/all.xml')
     # NewsSource.create(name: 'Huffington Post',
     #                   url: 'https://huffingtonpost.com',
     #                   feed_url: 'https://www.huffingtonpost.com/feeds/index.xml')
@@ -43,6 +60,10 @@ namespace :db do
     NewsSource.create(name: 'Ars Technica',
                       url: 'https://arstechnica.com',
                       feed_url: 'https://arstechnica.com/rss'
+                      )
+    NewsSource.create(name: 'Smithsonian',
+                      url: 'https://www.smithsonianmag.com',
+                      feed_url: 'https://www.smithsonianmag.com/rss/latest_articles/'
                       )
     NewsSource.create(name: 'No Recipes',
                       url: 'https://norecipes.com',

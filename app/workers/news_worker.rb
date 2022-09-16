@@ -24,9 +24,9 @@ class NewsWorker
         end
       end
      
-      # if feed.nil?
-      #   feed =  (SimpleRSS.parse`curl -L -H 'Referer: http://css-tricks.com/forums/topic/font-face-in-base64-is-cross-browser-compatible/' #{feed.url}` rescue nil)
-      # end
+      if feed.nil?
+        feed = (SimpleRSS.parse HTTParty.get(source.feed_url, :headers=>{'User-agent'=>'ermacaz'}) rescue nil)
+      end
       next if feed.nil?
       entry_set = {:source_name=>source.name, :source_url=>source.url, :stories=>[]}
       feed.entries.first(25).each do |entry|
@@ -59,6 +59,10 @@ class NewsWorker
               when 'AZ Central'
                 story['description'] = CGI.unescapeHTML(entry[:description].truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe)
                 story['media_url'] = entry[:content]
+              when 'The Intercept', 'NPR', "Al Jazeera", "Smithsonian"
+                story['description'] = CGI.unescapeHTML(entry[:description].truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe)
+              when 'NHK'
+                story['description'] = CGI.unescapeHTML(entry[:description].truncate(1000).gsub(' ', '  ').encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe)
               else
                 unless source.name.match?(/Google|Slashdot|Hacker/)
                   story['description'] = CGI.unescapeHTML(entry[key].truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe)
@@ -73,6 +77,8 @@ class NewsWorker
               end
             when 'media_content_url', 'media_thumbnail_url'
               story['media_url'] = entry[key].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
+            when 'content_encoded'
+              story['media_url'] ||= Nokogiri.parse(entry[:content_encoded])&.xpath("//img")&.first&.attribute('src')&.to_s
             end
           end
           begin
@@ -118,6 +124,20 @@ class NewsWorker
               else
                 parts = article.xpath('//p').map(&:content)
               end
+            end
+            if story['media_url'].blank?
+              if source.name == 'Smithsonian'
+                img_src = (article.xpath("//img")[1]&.attribute('src')&.to_s.split(")/")[1] rescue nil)
+              elsif source.name == 'NHK'
+                img_src = (source.url + '/news/html/' + article.xpath("//img")[2]&.attribute('src')&.to_s.gsub('../','') rescue nil)
+                img_src = nil if img_src.match?(/noimg_default/)
+              else
+                img_src = article.xpath("//img")&.first&.attribute('src')&.to_s
+              end
+              if img_src&.match?(/^\//)
+                img_src = source.url + img_src
+              end
+              story['media_url'] = img_src if img_src&.strip&.present?
             end
             if parts
               parts = parts.map(&:strip).reject(&:blank?).reject {|a| a.length < 5 || a.match?(/^Credit\.\.\.$|^Photographs by|10 gift articles to give each month/)}
