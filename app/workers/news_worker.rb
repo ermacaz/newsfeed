@@ -94,16 +94,26 @@ class NewsWorker
                 story['content'] = (article.css('.usertext-body').first.content.split("\n\n") rescue nil)
               end
             when 'Ars Technica'
-              parts = article.css('.article-content').first.xpath("//p").map(&:content).drop(4)
-              comment_part = parts.select {|a| a.match?(/^You must login or create an account to comment/)}.first
+              parts = []
+              img_count = 0 # first image is dup of headline img
+              article.css('.article-content').first.xpath("//p | //img").each do |part|
+                if part.name == 'img' 
+                  if img_count > 0
+                    parts << {:img=>part.attribute('src').to_s}
+                  end 
+                  img_count += 1
+                else
+                  parts << {:text=>part.content}
+                end
+              end
+              comment_part = parts.select {|a| a.values.first.match?(/^You must login or create an account to comment/)}.first
               if comment_part # everything here and after is removable
-                index = parts.index(comment_part)
+                index = parts.index(comment_part) || -1
                 parts = parts.reverse.drop(parts.length-index).reverse
               end
-            when 'New York Times', 'Washington Post'
-              parts = article.xpath("//p").map(&:content).reject {|b| b.match?(/^Advertisement$|^Supported by$|^Send any friend a story$/)}
             when 'Phoenix New Times'
-              parts = article.css('.fdn-content-body').first.content.strip.split("\n\n")
+              raw = article.search(".fdn-content-body").to_s.split(/<img/)
+              parts = get_content_and_images(raw)
             when 'PC GAMER'
               parts = article.css('#article-body').first.xpath("//p").map(&:content).map {|a| a.gsub('(opens in new tab)','')}.reject {|a| a.match?(/^PC Gamer is part of Future US Inc|^PC Gamer is supported by its audience|Future US, Inc. Full 7th Floor/)}
             when 'Slashdot'
@@ -112,18 +122,44 @@ class NewsWorker
               parts = article.css('.c-entry-content').first.xpath("//p").map(&:content).reject {|a| a.match?(/^PC Gamer is part of Future US Inc|^PC Gamer is supported by its audience|Future US, Inc. Full 7th Floor/)}
             when 'Kotaku'
               parts = article.css('.js_post-content').first.content.gsub(/AdvertisementScreenshot: [A-z]+ \/ KotakuAdvertisement/, ' ').split("\n\t\n\t\t\n\t\t\t\n\t\t\n\t\n").map {|a| a.split('Advertisement')}.flatten
+            when 'New York Times'
+              parts = []
+              article.xpath("//section[@name='articleBody']").first.xpath('//p | //img | //picture').each do |part|
+                parts << (get_part_hash(part, story) rescue article.xpath("//article").first.content.split("\n\n").map {|a| {:text=>a}})
+              end
             else
               if article.xpath("//article").any?
-                parts = (article.xpath("//article").first.xpath('//p').map(&:content) rescue article.xpath("//article").first.content.split("\n\n"))
-              else
-                parts = article.xpath('//p').map(&:content)
+                parts = []
+                article.xpath("//article").first.xpath('//p | //img | //picture').each do |part|
+                  parts << (get_part_hash(part, story) rescue article.xpath("//article").first.content.split("\n\n").map {|a| {:text=>a}})
+                end
+              else  
+                parts = []
+                article.xpath('//p | //img').each do |part|
+                  parts << get_part_hash(part, story)
+                end
               end
             end
             if parts
-              parts = parts.map(&:strip).reject(&:blank?).reject {|a| a.length < 5 || a.match?(/^Credit\.\.\.$|^Photographs by|10 gift articles to give each month/)}
+              if parts.first.is_a?(Hash)
+                parts = parts.map do |part|
+                  val = part.values.first
+                  if part.keys.first == :text
+                    val = sanitize_part(part.values.first)
+                  end
+                  if val
+                    {part.keys.first=>val}
+                  else
+                    nil
+                  end
+                end.compact
+              else
+                parts = parts.map {|a| sanitize_part(a)}.compact
+              end
               story['content'] = parts if parts.any?
             end
           rescue Exception=>e
+            puts e.message
             1==1
           end
           REDIS.hset("newsfeed_cached_stories", link_hash=>story.to_json)
@@ -138,6 +174,37 @@ class NewsWorker
       current_cached_stores.each {|c| r.hdel("newsfeed_cached_stories", c)}
     end
     ActionCable.server.broadcast 'news_sources_channel', JSON.parse(REDIS.call('get', 'newsfeed'))
-    return true
+    true
+  end
+  
+  private
+  def sanitize_part(str)
+    str = str.strip
+    if str.blank? || str.length < 5 || str.strip.match?(/^Advertisement$|^Supported by$|^Send any friend a story$|^Front page layout|^Site theme|^Sign up or login|^Credit\.\.\.$|^Photographs by|10 gift articles to give each month/)
+      nil
+    else
+      str
+    end
+  end
+  
+  def get_part_hash(part, story)
+    if part.name == 'img'.freeze && part.attribute('src'.freeze).to_s != story['media_url'.freeze]
+      {:img=>part.attribute('src'.freeze).to_s}
+    else
+      {:text=>part.content}
+    end
+  end 
+  def get_content_and_images(raw)
+    parts = []
+    raw.each do |piece|
+      n = Nokogiri.HTML("<img" + piece)
+      if piece.strip.match?(/^src/)
+        parts << {:img=>n.search("img").first.attribute("src").to_s}
+      end
+      n.content.split("\n\n").each do |p|
+        parts << {:text=>p}
+      end
+    end
+    parts
   end
 end
