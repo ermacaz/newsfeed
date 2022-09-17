@@ -4,6 +4,10 @@ class NewsWorker
   require 'nokogiri'
   require 'cgi'
   
+  
+  ## TODO
+  # cache images at thumb and modal size?
+  # parse full pages with lazy load images iwth apparition?
   def scrape(sources=NewsSource.active, nocache=false)
     current_cached_stores = REDIS.hkeys("newsfeed_cached_stories")
     set = []
@@ -13,7 +17,7 @@ class NewsWorker
         feed = source.feed
         next if feed.nil?
         entry_set = {:source_name=>source.name, :source_url=>source.url, :stories=>[]}
-        feed.entries.first(5).each do |entry|
+        feed.entries.first(25).each do |entry|
           story = {}
           if source.name == 'AZ Central'
             story[:link] = entry[:feedburner_origLink].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('reddit.com','teddit.net')
@@ -131,7 +135,7 @@ class NewsWorker
                 story[:media_url] = img_src if img_src&.strip&.present?
               end
             end
-            if story[:content].blank? && article
+            if story[:content].blank? && article  && source.name != 'Reddit'
               unless defined?(parts) && parts
                 if article.xpath("//article").any?
                   parts = (article.xpath("//article").first.xpath('//p').map(&:content) rescue article.xpath("//article").first.content.split("\n\n"))
