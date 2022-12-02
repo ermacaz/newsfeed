@@ -10,6 +10,21 @@ class NewsWorker
     ActiveStorage::Current.url_options = { protocol: 'http', host: 'localhost', port: '3001' }
   end
   
+  def clear_old_caches
+    current_cached_stories = REDIS.hkeys("newsfeed_cached_stories")
+    stories_to_del = current_cached_stories.select do |cache|
+      store = REDIS.hget("newsfeed_cached_stories", cache)
+      story = JSON.parse(store)
+      story.keys.exclude?("cache_time") || Time.at(story["cache_time"].to_i) < 48.hours.ago
+    end
+    REDIS.multi do |r|
+      stories_to_del.each do |link_hash|
+        r.hdel("newsfeed_cached_stories", link_hash)
+        StoryImage.find_by_link_hash(link_hash)&.purge
+      end
+    end
+  end
+  
   ## TODO
   # cache images at thumb and modal size?
   # parse full pages with lazy load images iwth apparition?
@@ -154,6 +169,7 @@ class NewsWorker
               parts = parts.map(&:strip).reject(&:blank?).reject {|a| a.length < 5 || a.match?(/^PC Gamer is part of Future US Inc|^PC Gamer is supported by its audience|Future US, Inc. Full 7th Floor|^Advertisement$|^Supported by$|^Send any friend a story$|^Follow Al Jazeera|^Sponsor Message|^Sign in|First Look Institute|^Credit\.\.\.$|^Photographs by|10 gift articles to give each month/)}
               story[:content] = parts if parts.any?
             end
+            story[:cache_time] = Time.now.to_i
             REDIS.hset("newsfeed_cached_stories", link_hash=>story.to_json)
           end
           entry_set[:stories] << story
@@ -166,12 +182,12 @@ class NewsWorker
     end
     REDIS.call("SET", "newsfeed", set.to_json)
     # remove any stores not found when researching
-    REDIS.multi do |r|
-      current_cached_stores.each do |link_hash| 
-        r.hdel("newsfeed_cached_stories", link_hash)
-        StoryImage.find_by_link_hash(link_hash)&.purge
-      end
-    end
+    # REDIS.multi do |r|
+    #   current_cached_stores.each do |link_hash| 
+    #     r.hdel("newsfeed_cached_stories", link_hash)
+    #     StoryImage.find_by_link_hash(link_hash)&.purge
+    #   end
+    # end
     ActionCable.server.broadcast 'news_sources_channel', JSON.parse(REDIS.call('get', 'newsfeed'))
     return true
   end

@@ -11,6 +11,10 @@ class NewsSourcesController < ApplicationController
     NewsSourcesChannel.broadcast_to('news_sources_channel', JSON.parse(REDIS.call('get', 'newsfeed')))
     render :head=>:ok
   end
+  
+  def get_story
+    render :json=>REDIS.hget("newsfeed_cached_stories", params[:link_hash])
+  end
   #
   # # GET /news_sources/1
   # def show
