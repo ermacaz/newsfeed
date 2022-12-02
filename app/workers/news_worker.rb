@@ -169,9 +169,9 @@ class NewsWorker
               parts = parts.map(&:strip).reject(&:blank?).reject {|a| a.length < 5 || a.match?(/^PC Gamer is part of Future US Inc|^PC Gamer is supported by its audience|Future US, Inc. Full 7th Floor|^Advertisement$|^Supported by$|^Send any friend a story$|^Follow Al Jazeera|^Sponsor Message|^Sign in|First Look Institute|^Credit\.\.\.$|^Photographs by|10 gift articles to give each month/)}
               story[:content] = parts if parts.any?
             end
-            story[:cache_time] = Time.now.to_i
-            REDIS.hset("newsfeed_cached_stories", link_hash=>story.to_json)
           end
+          story[:cache_time] = Time.now.to_i
+          REDIS.hset("newsfeed_cached_stories", link_hash=>story.to_json)
           entry_set[:stories] << story
         end
         set << entry_set
