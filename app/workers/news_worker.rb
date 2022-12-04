@@ -43,7 +43,7 @@ class NewsWorker
           #load cache
           entry_set[:stories] = source.get_cached_stories.values
         else
-          feed.entries.first(5).each do |entry|
+          feed.entries.first(25).each do |entry|
             story = {:source=>source.name.downcase.gsub(' ','_')}
             if source.name == 'AZ Central'
               story[:link] = entry[:feedburner_origLink].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('reddit.com','teddit.net')
