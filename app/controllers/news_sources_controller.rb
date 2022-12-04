@@ -13,7 +13,8 @@ class NewsSourcesController < ApplicationController
   end
   
   def get_story
-    render :json=>REDIS.hget("newsfeed_cached_stories", params[:link_hash])
+    source = NewsSource.find_by_slug(params[:source_name])
+    render :json=>REDIS.hget(source.cache_key, params[:story_hash])
   end
   #
   # # GET /news_sources/1

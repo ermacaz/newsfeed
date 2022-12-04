@@ -11,168 +11,174 @@ class NewsWorker
   end
   
   def clear_old_caches
-    current_cached_stories = REDIS.hkeys("newsfeed_cached_stories")
-    stories_to_del = current_cached_stories.select do |cache|
-      store = REDIS.hget("newsfeed_cached_stories", cache)
-      story = JSON.parse(store)
-      story.keys.exclude?("cache_time") || Time.at(story["cache_time"].to_i) < 48.hours.ago
-    end
-    REDIS.multi do |r|
-      stories_to_del.each do |link_hash|
-        r.hdel("newsfeed_cached_stories", link_hash)
-        StoryImage.find_by_link_hash(link_hash)&.purge
+    current_caches = REDIS.smembers("newsfeed_caches")
+    current_caches.each do |caches_key|
+      current_cached_stories = REDIS.hkeys(caches_key)
+      stories_to_del = current_cached_stories.select do |cache|
+        store = REDIS.hget(caches_key, cache)
+        story = JSON.parse(store)
+        story.keys.exclude?("cache_time") || Time.at(story["cache_time"].to_i) < 48.hours.ago
+      end
+      REDIS.multi do |r|
+        stories_to_del.each do |link_hash|
+          r.hdel(caches_key, link_hash)
+          StoryImage.find_by_link_hash(link_hash)&.purge
+        end
       end
     end
   end
   
   ## TODO
   # cache images at thumb and modal size?
-  # parse full pages with lazy load images iwth apparition?
+  # parse full pages with lazy load images with apparition?
   def scrape(sources=NewsSource.active, nocache=false)
-    current_cached_stores = REDIS.hkeys("newsfeed_cached_stories")
     set = []
     sources.each_with_index do |source,i|
       begin
         puts source.name
         feed = source.feed
-        next if feed.nil?
+        cached_story_keys = source.get_cached_story_keys
         entry_set = {:source_name=>source.name, :source_url=>source.url, :stories=>[]}
-        feed.entries.first(25).each do |entry|
-          story = {}
-          if source.name == 'AZ Central'
-            story[:link] = entry[:feedburner_origLink].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('reddit.com','teddit.net')
-          else
-            story[:link] = entry[:link].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('reddit.com','teddit.net')
-          end
-          link_hash = Digest::MD5.hexdigest story[:link]
-          if !nocache && current_cached_stores.include?(link_hash)
-            store = REDIS.hget("newsfeed_cached_stories", link_hash)
-            story = JSON.parse(store)
-            current_cached_stores = current_cached_stores - [link_hash]
-          else
-            story[:title] = CGI.unescapeHTML(entry[:title].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').gsub('&quot;', '"')).html_safe
-            case source.name
-            when 'AZ Central'
-              article = Nokogiri.HTML(entry[:content_encoded])
-            when 'NHK EasyNews'
-              article = nil
+        if feed.nil?
+          #load cache
+          entry_set[:stories] = source.get_cached_stories.values
+        else
+          feed.entries.first(5).each do |entry|
+            story = {:source=>source.name.downcase.gsub(' ','_')}
+            if source.name == 'AZ Central'
+              story[:link] = entry[:feedburner_origLink].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('reddit.com','teddit.net')
             else
-              article = Nokogiri.HTML(HTTParty.get(story[:link], :headers=>{'User-agent'=>'ermacaz'}).body)
+              story[:link] = entry[:link].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('reddit.com','teddit.net')
             end
-            img_src = nil
-            case source.name
-            when 'Ars Technica'
-              img_src = (Nokogiri.HTML(CGI.unescapeHTML(entry[:content_encoded])).xpath('//img').attribute('src').to_s rescue nil)
-              parts = article.css('.article-content').first.xpath("//p").map(&:content).drop(4)
-              comment_part = parts.select {|a| a.match?(/^You must login or create an account to comment/)}.first
-              if comment_part # everything here and after is removable
-                index = parts.index(comment_part)
-                parts = parts.reverse.drop(parts.length-index).reverse
+            link_hash = Digest::MD5.hexdigest story[:link]
+            if !nocache && cached_story_keys.include?(link_hash)
+              story = source.get_cached_story(link_hash)
+            else
+              story[:title] = CGI.unescapeHTML(entry[:title].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').gsub('&quot;', '"')).html_safe
+              case source.name
+              when 'AZ Central'
+                article = Nokogiri.HTML(entry[:content_encoded])
+              when 'NHK EasyNews'
+                article = nil
+              else
+                article = Nokogiri.HTML(HTTParty.get(story[:link], :headers=>{'User-agent'=>'ermacaz'}).body)
               end
-            when "Hacker News"
-              img_src = article.xpath("//img")&.first&.attribute('src')&.to_s
-              if img_src&.match?(/^\//)
-                img_src = nil
-              end
-              img_src = img_src_filter(img_src)
-            when "Just One Cookbook"
-              img_src = (Nokogiri.HTML(entry[:content]).xpath('//img').first.attr('src').encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
-              story[:description] =  CGI.unescapeHTML((Nokogiri.HTML(entry[:description]).xpath("//p")[1].content.truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil))
-            when "Kotaku"
-              story[:description] =  CGI.unescapeHTML((Nokogiri.HTML(entry[:description]).xpath("//p").first.content.truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil))
-              img_src = (Nokogiri.HTML(CGI.unescapeHTML(entry[:description])).xpath('//img').attribute('src').to_s rescue nil)
-            when 'New York Times'
-              img_src = entry[:media_content_url]
-            when 'NHK'
-              story[:description] = CGI.unescapeHTML(entry[:description].truncate(1000).gsub(' ', '  ').encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe)
-              img_src = (source.url + '/news/html/' + article.xpath("//img")[2]&.attribute('src')&.to_s.gsub('../','') rescue nil)
-              img_src = nil if img_src&.match?(/noimg_default/)
-              if img_src&.match?(/^\//)
-                img_src = source.url + img_src
-              end
-              img_src = img_src_filter(img_src)
-            when 'NHK EasyNews'
-              story[:title] = story[:title].gsub(/^\[\d\d\/\d\d\/\d\d\d\d\]/, '').strip
-            when 'No Recipes'
-              story[:description] =  CGI.unescapeHTML((Nokogiri.HTML(entry[:description]).xpath("//p").first.content.truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil))
-              img_src = article.xpath("//img")[5]&.attribute('src')&.to_s
-              if img_src&.match?(/^\//)
-                img_src = source.url + img_src
-              end
-              img_src = img_src_filter(img_src)
-            when 'PC GAMER'
-              parts = article.css('#article-body').first.xpath("//p").map(&:content).map {|a| a.gsub('(opens in new tab)','')}
-            when 'Phoenix New Times'
-              img_src = (Nokogiri.HTML(CGI.unescapeHTML(entry[:description])).xpath('//img').attribute('src').to_s rescue nil)
-              parts = article.css('.fdn-content-body').first.content.strip.split("\n\n")
-            when 'Reddit'
-              if article.css('#post').first.css('.image').first
-                story[:content] = ("https://teddit.net" + Nokogiri.HTML(article.css('#post').first.css('.image').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
-                img_src = story[:content]
-              elsif article.css('#post').first.css('.video').first
-                story[:content] = ("https://teddit.net" + Nokogiri.HTML(article.css('#post').first.css('.video').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
-              elsif article.css('.usertext-body').first
-                story[:content] = (article.css('.usertext-body').first.content.split("\n\n") rescue nil)
-              end
-            when 'Slashdot'
-              parts = article.css('.body').first.content.strip.split("\n\n")
-              img_src = article.xpath("//img")&.first&.attribute('src')&.to_s.gsub(/^\/\//,'https://')
-              img_src = img_src_filter(img_src)
-            when 'Smithsonian'
-              img_src = (article.xpath("//img")[1]&.attribute('src')&.to_s.split(")/")[1] rescue nil)
-              if img_src&.match?(/^\//)
-                img_src = source.url + img_src
-              end
-              img_src = img_src_filter(img_src)
-            when 'The Verge'
-              img_src = (Nokogiri.HTML(CGI.unescapeHTML(entry[:content])).xpath('//img').attribute('src').to_s rescue nil)
-              story[:description] = (Nokogiri.HTML(CGI.unescapeHTML(entry[:content])).to_s.gsub(/(<([^>]+)>)/i, '').gsub(/\s/, ' ').strip rescue nil)
-            end
-            if story[:description].blank? && entry[:description].present?
-              unless source.name.match?(/Google|Slashdot|Hacker|Reddit|Verge|EasyNews/)
-                story[:description] =  CGI.unescapeHTML(entry[:description].truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe)
-              end
-            end
-            unless img_src || source.name == 'Hacker News'
-              if entry[:media_content_url].present?
-                img_src = entry[:media_content_url]
-              elsif entry[:media_thumbnail_url].present?
-                img_src = entry[:media_thumbnail_url]
-              elsif entry[:content_encoded].present?
-                img_src = (Nokogiri.parse(entry[:content_encoded])&.xpath("//img")&.first&.attribute('src')&.to_s rescue nil)
-              end
-              if img_src.blank? && article
+              img_src = nil
+              case source.name
+              when 'Ars Technica'
+                img_src = (Nokogiri.HTML(CGI.unescapeHTML(entry[:content_encoded])).xpath('//img').attribute('src').to_s rescue nil)
+                parts = article.css('.article-content').first.xpath("//p").map(&:content).drop(4)
+                comment_part = parts.select {|a| a.match?(/^You must login or create an account to comment/)}.first
+                if comment_part # everything here and after is removable
+                  index = parts.index(comment_part)
+                  parts = parts.reverse.drop(parts.length-index).reverse
+                end
+              when "Hacker News"
                 img_src = article.xpath("//img")&.first&.attribute('src')&.to_s
+                if img_src&.match?(/^\//)
+                  img_src = nil
+                end
+                img_src = img_src_filter(img_src)
+              when "Just One Cookbook"
+                img_src = (Nokogiri.HTML(entry[:content]).xpath('//img').first.attr('src').encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
+                story[:description] =  CGI.unescapeHTML((Nokogiri.HTML(entry[:description]).xpath("//p")[1].content.truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil))
+              when "Kotaku"
+                story[:description] =  CGI.unescapeHTML((Nokogiri.HTML(entry[:description]).xpath("//p").first.content.truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil))
+                img_src = (Nokogiri.HTML(CGI.unescapeHTML(entry[:description])).xpath('//img').attribute('src').to_s rescue nil)
+              when 'New York Times'
+                img_src = entry[:media_content_url]
+              when 'NHK'
+                story[:description] = CGI.unescapeHTML(entry[:description].truncate(1000).gsub(' ', '  ').encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe)
+                img_src = (source.url + '/news/html/' + article.xpath("//img")[2]&.attribute('src')&.to_s.gsub('../','') rescue nil)
+                img_src = nil if img_src&.match?(/noimg_default/)
                 if img_src&.match?(/^\//)
                   img_src = source.url + img_src
                 end
                 img_src = img_src_filter(img_src)
+              when 'NHK EasyNews'
+                story[:title] = story[:title].gsub(/^\[\d\d\/\d\d\/\d\d\d\d\]/, '').strip
+              when 'No Recipes'
+                story[:description] =  CGI.unescapeHTML((Nokogiri.HTML(entry[:description]).xpath("//p").first.content.truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil))
+                img_src = article.xpath("//img")[5]&.attribute('src')&.to_s
+                if img_src&.match?(/^\//)
+                  img_src = source.url + img_src
+                end
+                img_src = img_src_filter(img_src)
+              when 'PC GAMER'
+                parts = article.css('#article-body').first.xpath("//p").map(&:content).map {|a| a.gsub('(opens in new tab)','')}
+              when 'Phoenix New Times'
+                img_src = (Nokogiri.HTML(CGI.unescapeHTML(entry[:description])).xpath('//img').attribute('src').to_s rescue nil)
+                parts = article.css('.fdn-content-body').first.content.strip.split("\n\n")
+              when 'Reddit'
+                if article.css('#post').first.css('.image').first
+                  story[:content] = ("https://teddit.net" + Nokogiri.HTML(article.css('#post').first.css('.image').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
+                  img_src = story[:content]
+                elsif article.css('#post').first.css('.video').first
+                  story[:content] = ("https://teddit.net" + Nokogiri.HTML(article.css('#post').first.css('.video').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
+                elsif article.css('.usertext-body').first
+                  story[:content] = (article.css('.usertext-body').first.content.split("\n\n") rescue nil)
+                end
+              when 'Slashdot'
+                parts = article.css('.body').first.content.strip.split("\n\n")
+                img_src = article.xpath("//img")&.first&.attribute('src')&.to_s.gsub(/^\/\//,'https://')
+                img_src = img_src_filter(img_src)
+              when 'Smithsonian'
+                img_src = (article.xpath("//img")[1]&.attribute('src')&.to_s.split(")/")[1] rescue nil)
+                if img_src&.match?(/^\//)
+                  img_src = source.url + img_src
+                end
+                img_src = img_src_filter(img_src)
+              when 'The Verge'
+                img_src = (Nokogiri.HTML(CGI.unescapeHTML(entry[:content])).xpath('//img').attribute('src').to_s rescue nil)
+                story[:description] = (Nokogiri.HTML(CGI.unescapeHTML(entry[:content])).to_s.gsub(/(<([^>]+)>)/i, '').gsub(/\s/, ' ').strip rescue nil)
               end
-            end
-            if img_src&.strip&.present?
-              story_image = process_img(img_src, link_hash)
-              if story_image
-                story[:media_url_thumb] = story_image.variant(resize_to_limit: [100, nil]).url
-                story[:media_url]       = story_image.variant(resize_to_limit: [350, nil]).url
-              elsif img_src.present?
-                story[:media_url_thumb] = story[:media_url] = img_src
-              end
-            end
-            if story[:content].blank? && article  && source.name != 'Reddit'
-              unless defined?(parts) && parts
-                if article.xpath("//article").any?
-                  parts = (article.xpath("//article").first.xpath('//p').map(&:content) rescue article.xpath("//article").first.content.split("\n\n"))
-                else
-                  parts = article.xpath('//p').map(&:content)
+              if story[:description].blank? && entry[:description].present?
+                unless source.name.match?(/Google|Slashdot|Hacker|Reddit|Verge|EasyNews/)
+                  story[:description] =  CGI.unescapeHTML(entry[:description].truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe)
                 end
               end
-              parts = parts.map(&:strip).reject(&:blank?).reject {|a| a.length < 5 || a.match?(/^PC Gamer is part of Future US Inc|^PC Gamer is supported by its audience|Future US, Inc. Full 7th Floor|^Advertisement$|^Supported by$|^Send any friend a story$|^Follow Al Jazeera|^Sponsor Message|^Sign in|First Look Institute|^Credit\.\.\.$|^Photographs by|10 gift articles to give each month/)}
-              story[:content] = parts if parts.any?
+              unless img_src || source.name == 'Hacker News'
+                if entry[:media_content_url].present?
+                  img_src = entry[:media_content_url]
+                elsif entry[:media_thumbnail_url].present?
+                  img_src = entry[:media_thumbnail_url]
+                elsif entry[:content_encoded].present?
+                  img_src = (Nokogiri.parse(entry[:content_encoded])&.xpath("//img")&.first&.attribute('src')&.to_s rescue nil)
+                end
+                if img_src.blank? && article
+                  img_src = article.xpath("//img")&.first&.attribute('src')&.to_s
+                  if img_src&.match?(/^\//)
+                    img_src = source.url + img_src
+                  end
+                  img_src = img_src_filter(img_src)
+                end
+              end
+              if img_src&.strip&.present?
+                story_image = process_img(img_src, link_hash)
+                if story_image
+                  story[:media_url_thumb] = story_image.variant(resize_to_limit: [100, nil]).url
+                  story[:media_url]       = story_image.variant(resize_to_limit: [350, nil]).url
+                elsif img_src.present?
+                  story[:media_url_thumb] = story[:media_url] = img_src
+                end
+              end
+              if story[:content].blank? && article  && source.name != 'Reddit'
+                unless defined?(parts) && parts
+                  if article.xpath("//article").any?
+                    parts = (article.xpath("//article").first.xpath('//p').map(&:content) rescue article.xpath("//article").first.content.split("\n\n"))
+                  else
+                    parts = article.xpath('//p').map(&:content)
+                  end
+                end
+                parts = parts.map(&:strip).reject(&:blank?).reject {|a| a.length < 5 || a.match?(/^PC Gamer is part of Future US Inc|^PC Gamer is supported by its audience|Future US, Inc. Full 7th Floor|^Advertisement$|^Supported by$|^Send any friend a story$|^Follow Al Jazeera|^Sponsor Message|^Sign in|First Look Institute|^Credit\.\.\.$|^Photographs by|10 gift articles to give each month/)}
+                story[:content] = parts if parts.any?
+              end
             end
+            story[:cache_time] = Time.now.to_i
+            REDIS.hset(source.cache_key, link_hash=>story.to_json)
+            REDIS.sadd?("newsfeed_caches", source.cache_key)
+            entry_set[:stories] << story
           end
-          story[:cache_time] = Time.now.to_i
-          REDIS.hset("newsfeed_cached_stories", link_hash=>story.to_json)
-          entry_set[:stories] << story
         end
         set << entry_set
       rescue Exception=>e
