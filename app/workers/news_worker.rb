@@ -177,7 +177,13 @@ class NewsWorker
             story[:cache_time] = Time.now.to_i
             REDIS.hset(source.cache_key, link_hash=>story.to_json)
             REDIS.sadd?("newsfeed_caches", source.cache_key)
-            entry_set[:stories] << story
+            # just record if we have a content, we will load its cache separately
+            if story[:content].present?
+              story[:content] = true
+              entry_set[:stories] << story
+            else
+              entry_set[:stories] << story.except(:content)
+            end
           end
         end
         set << entry_set
