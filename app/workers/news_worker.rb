@@ -10,6 +10,19 @@ class NewsWorker
     ActiveStorage::Current.url_options = { protocol: 'http', host: 'localhost', port: '3001' }
   end
   
+  def clear_all_caches
+    current_caches = REDIS.smembers("newsfeed_caches")
+    current_caches.each do |caches_key|
+      current_cached_stories = REDIS.hkeys(caches_key)
+      REDIS.multi do |r|
+        current_cached_stories.each do |link_hash|
+          r.hdel(caches_key, link_hash)
+          StoryImage.find_by_link_hash(link_hash)&.purge
+        end
+      end
+    end
+  end
+  
   def clear_old_caches
     current_caches = REDIS.smembers("newsfeed_caches")
     current_caches.each do |caches_key|
