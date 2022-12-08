@@ -36,14 +36,17 @@ class NewsWorker
     sources.each_with_index do |source,i|
       begin
         puts source.name
-        feed = source.feed
-        cached_story_keys = source.get_cached_story_keys
+        skip_scan = false
+        unless ((source.scan_interval.nil? || source.last_scanned_at.nil?) || (source.last_scanned_at + source.scan_interval.minutes < Time.zone.now))
+          skip_scan = true
+        end
         entry_set = {:source_name=>source.name, :source_url=>source.url, :stories=>[]}
-        if feed.nil?
-          #load cache
-          entry_set[:stories] = source.get_cached_stories.values
+        if skip_scan || source.feed.nil?
+          puts "Loading cache for #{source.name}"
+          entry_set[:stories] = source.get_cached_stories.values.map {|a| JSON.parse(a)}
         else
-          feed.entries.first(25).each do |entry|
+          source.feed.entries.first(25).each do |entry|
+            cached_story_keys = source.get_cached_story_keys
             story = {:source=>source.name.downcase.gsub(' ','_')}
             if source.name == 'AZ Central'
               story[:link] = entry[:feedburner_origLink].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('reddit.com','teddit.net')
@@ -185,6 +188,7 @@ class NewsWorker
               entry_set[:stories] << story.except(:content)
             end
           end
+          source.update!(:last_scanned_at=>Time.zone.now)
         end
         set << entry_set
       rescue Exception=>e
