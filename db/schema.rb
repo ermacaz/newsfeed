@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2022_12_04_200238) do
+ActiveRecord::Schema[7.0].define(version: 2022_12_08_014743) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -50,6 +50,8 @@ ActiveRecord::Schema[7.0].define(version: 2022_12_04_200238) do
     t.boolean "enabled", default: true
     t.boolean "multiple_feeds", default: false
     t.string "slug"
+    t.integer "scan_interval"
+    t.datetime "last_scanned_at"
     t.index ["slug"], name: "index_news_sources_on_slug"
   end
 

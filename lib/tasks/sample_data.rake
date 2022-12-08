@@ -9,7 +9,8 @@ namespace :db do
     end
     NewsSource.create(name: 'Reddit',
                       url: 'https://reddit.com',
-                      feed_url: 'https://www.reddit.com/.rss')
+                      feed_url: 'https://www.reddit.com/.rss',
+                      :scan_interval=>60)
     NewsSource.create(name: 'New York Times',
                       url: 'https://nytimes.com',
                       feed_url: 'http://feeds.feedburner.com/nytimes/QwEB')
@@ -67,12 +68,15 @@ namespace :db do
                       )
     NewsSource.create(name: 'No Recipes',
                       url: 'https://norecipes.com',
-                      feed_url: 'https://norecipes.com/feed')
+                      feed_url: 'https://norecipes.com/feed',
+                      :scan_interval=>2000)
     NewsSource.create(name: 'Just One Cookbook',
                       url: 'https://www.justonecookbook.com',
-                      feed_url: 'https://www.justonecookbook.com/rss')
+                      feed_url: 'https://www.justonecookbook.com/rss',
+                      :scan_interval=>2000)
     NewsSource.create(name: 'NHK EasyNews',
                       url: 'https://www3.nhk.or.jp/news/easy/index.html',
-                      feed_url: 'https://www.reddit.com/r/NHKEasyNews/.rss')
+                      feed_url: 'https://www.reddit.com/r/NHKEasyNews/.rss',
+                      :scan_interval=>500)
   end 
 end
