@@ -56,7 +56,7 @@ class NewsWorker
         entry_set = {:source_name=>source.name, :source_url=>source.url, :stories=>[]}
         if skip_scan || source.feed.nil?
           puts "Loading cache for #{source.name}"
-          entry_set[:stories] = source.get_cached_stories.values.map {|a| JSON.parse(a)}
+          entry_set[:stories] = source.get_cached_stories.values.map {|a| JSON.parse(a)}.sort {|a,b| (b['cache_time'] rescue 5.years.ago) <=>  (a['cache_time'] rescue 5.years.ago)}.first(25)
         else
           source.feed.entries.first(25).each do |entry|
             cached_story_keys = source.get_cached_story_keys
