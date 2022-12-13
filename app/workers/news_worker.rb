@@ -83,7 +83,7 @@ class NewsWorker
               case source.name
               when 'Ars Technica'
                 img_src = (Nokogiri.HTML(CGI.unescapeHTML(entry[:content_encoded])).xpath('//img').attribute('src').to_s rescue nil)
-                parts = article.css('.article-content').first.xpath("//p").map(&:content).drop(4)
+                parts = (article.css('.article-content').first.xpath("//p").map(&:content).drop(4) rescue [])
                 comment_part = parts.select {|a| a.match?(/^You must login or create an account to comment/)}.first
                 if comment_part # everything here and after is removable
                   index = parts.index(comment_part)
