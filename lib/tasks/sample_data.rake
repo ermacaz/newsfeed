@@ -44,11 +44,12 @@ namespace :db do
                       url: 'https://www.phoenixnewtimes.com/',
                       feed_url: 'https://www.phoenixnewtimes.com/phoenix/Rss.xml')
     NewsSource.create(name: 'Slashdot',
-      url: 'https://slashdot.org',
-      feed_url: 'http://rss.slashdot.org/Slashdot/slashdot/to')
+                      url: 'https://slashdot.org',
+                      feed_url: 'http://rss.slashdot.org/Slashdot/slashdot/to')
     NewsSource.create(name: 'Hacker News',
-      url: 'https://news.ycombinator.com',
-      feed_url: 'https://news.ycombinator.com/rss')
+                      url: 'https://news.ycombinator.com',
+                      feed_url: 'https://news.ycombinator.com/rss',
+                      :scan_interval=>60)
     NewsSource.create(name: 'Kotaku',
                       url: 'https://kotaku.com',
                       feed_url: 'https://kotaku.com/rss')

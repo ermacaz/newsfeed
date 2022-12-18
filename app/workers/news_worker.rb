@@ -139,7 +139,7 @@ class NewsWorker
                 img_src = article.xpath("//img")&.first&.attribute('src')&.to_s.gsub(/^\/\//,'https://')
                 img_src = img_src_filter(img_src)
               when 'Smithsonian'
-                img_src = (article.xpath("//img")[1]&.attribute('src')&.to_s.split(")/")[1] rescue nil)
+                img_src = (article.xpath("//img").compact[1]&.attribute('src')&.to_s.split(")/")[1] rescue nil)
                 if img_src&.match?(/^\//)
                   img_src = source.url + img_src
                 end
