@@ -45,6 +45,10 @@ class NewsSource < ApplicationRecord
     REDIS.hkeys(cache_key)
   end
   
+  def delete_cached_stories
+    REDIS.del(cache_key)
+  end
+  
   def get_cached_story(link_hash)
     store = REDIS.hget(self.cache_key, link_hash)
     if store
