@@ -36,6 +36,10 @@ class NewsSource < ApplicationRecord
     end
     @feed
   end
+
+  def self.clear_all_caches
+    REDIS.del('newsfeed_caches')
+  end
   
   def get_cached_stories
     REDIS.hgetall(cache_key)

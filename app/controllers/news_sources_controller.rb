@@ -4,7 +4,11 @@ class NewsSourcesController < ApplicationController
 
   # GET /news_sources
   def index
-    render :json=>REDIS.call('get', 'newsfeed')
+    unless result = REDIS.call('get', 'newsfeed')
+      NewsWorker.new.scrape
+      result = REDIS.call('get', 'newsfeed')
+    end
+    render :json=>result
   end
 
   def get_news
