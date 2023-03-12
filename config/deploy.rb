@@ -68,7 +68,7 @@ task :deploy do
     command %{export PATH=:/usr/local/rvm/rubies/ruby-3.2.1/bin:$PATH}
     command %{bundle config set --local path 'vendor/bundle'}
     invoke :"bundle:install"
-    command 'DISABLE_DATABASE_ENVIRONMENT_CHECK=1 RAILS_ENV=production bin/rails db:populate'
+    # command 'DISABLE_DATABASE_ENVIRONMENT_CHECK=1 RAILS_ENV=production bin/rails db:populate'
     command %{mkdir -p tmp/pids}
     invoke :'deploy:cleanup'
     
@@ -82,6 +82,11 @@ task :deploy do
   
   # you can use `run :local` to run tasks on local machine before of after the deploy scripts
   # run(:local){ say 'done' }
+end
+
+"Clear all caches on server"
+task :wipe_caches do
+  command %{bin/rails wipe_caches}
 end
 
 # For help in making your deploy script, see the Mina documentation:
