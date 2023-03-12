@@ -236,8 +236,10 @@ class NewsWorker
       end
       story_image
     rescue Exception=>e
-      Logger.warn(e.message)
-      Logger.warn e.backtrace.select {|a| a.match?(/newsfeed/)}.inspect
+      Rails.logger.warn("unable to grab image at #{img_src}")
+      Rails.logger.warn(e.message)
+      Rails.logger.warn e.backtrace.select {|a| a.match?(/newsfeed/)}.inspect
+      puts "unable to grab image at #{img_src}"
       puts e.message
       puts e.backtrace.select {|a| a.match?(/newsfeed/)}.inspect
     end
