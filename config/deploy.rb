@@ -86,7 +86,13 @@ end
 
 "Clear all caches on server"
 task :wipe_caches do
-  command %{bin/rails wipe_caches}
+  command %{cd /var/www/newsfeed/current}
+  command %{export PATH=/usr/local/rvm/bin:$PATH}
+  command %{export PATH=/usr/local/rvm/gems/ruby-3.2.1/bin:$PATH}
+  command %{export PATH=/usr/local/rvm/gems/ruby-3.2.1@global/bin:$PATH}
+  command %{export PATH=:/usr/local/rvm/rubies/ruby-3.2.1/bin:$PATH}
+  command %{bundle config set --local path 'vendor/bundle'}
+  command %{RAILS_ENV=production bin/rails wipe_caches}
 end
 
 # For help in making your deploy script, see the Mina documentation:
