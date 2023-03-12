@@ -172,8 +172,8 @@ class NewsWorker
               if img_src&.strip&.present?
                 story_image = process_img(img_src, link_hash)
                 if story_image
-                  story[:media_url_thumb] = story_image.variant(resize_to_limit: [100, nil]).url
-                  story[:media_url]       = story_image.variant(resize_to_limit: [350, nil]).url
+                  story[:media_url_thumb] = story_image.variant(resize_to_limit: [200, nil]).url
+                  story[:media_url]       = story_image.variant(resize_to_limit: [800, nil]).url
                 elsif img_src.present?
                   story[:media_url_thumb] = story[:media_url] = img_src
                 end
@@ -248,6 +248,8 @@ class NewsWorker
       end
       story_image
     rescue Exception=>e
+      Logger.warn(e.message)
+      Logger.warn e.backtrace.select {|a| a.match?(/newsfeed/)}.inspect
       puts e.message
       puts e.backtrace.select {|a| a.match?(/newsfeed/)}.inspect
     end
