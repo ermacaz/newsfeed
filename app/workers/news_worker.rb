@@ -160,8 +160,8 @@ class NewsWorker
               if img_src&.strip&.present?
                 story_image = process_img(img_src, link_hash)
                 if story_image
-                  story[:media_url_thumb] = story_image.variant(resize_to_limit: [200, nil]).url
-                  story[:media_url]       = story_image.variant(resize_to_limit: [800, nil]).url
+                  story[:media_url_thumb] = story_image.thumb_url
+                  story[:media_url]       = story_image.story_image_url
                 elsif img_src.present?
                   story[:media_url_thumb] = story[:media_url] = img_src
                 end

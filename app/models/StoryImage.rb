@@ -1,4 +1,7 @@
 class StoryImage < ActiveStorage::Blob
+
+  THUMB_WIDTH = 200
+  STORY_WIDTH = 800
   
  
   def self.create_and_upload!(key: nil, io:, filename:, content_type: nil, metadata: nil, service_name: nil, identify: true, record: nil, link_hash: nil)
@@ -18,8 +21,15 @@ class StoryImage < ActiveStorage::Blob
   end
   
   def create_image_variants
-    self.variant(:resize_to_limit=>[350,nil]).processed
-    self.variant(:resize_to_limit=>[100,nil]).processed
+    self.variant(:resize_to_limit=>[STORY_WIDTH,nil]).processed
+    self.variant(:resize_to_limit=>[THUMB_WIDTH,nil]).processed
+  end
+
+  def story_image_url
+    self.variant(resize_to_limit: [STORY_WIDTH, nil]).url
+  end
+  def thumb_url
+    self.variant(resize_to_limit: [THUMB_WIDTH, nil]).url
   end
   
 end
