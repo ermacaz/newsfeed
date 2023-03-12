@@ -38,7 +38,16 @@ class NewsSource < ApplicationRecord
   end
 
   def self.clear_all_caches
-    REDIS.del('newsfeed_caches')
+    current_caches = REDIS.smembers("newsfeed_caches")
+    current_caches.each do |caches_key|
+      current_cached_stories = REDIS.hkeys(caches_key)
+      REDIS.multi do |r|
+        current_cached_stories.each do |link_hash|
+          r.hdel(caches_key, link_hash)
+          StoryImage.find_by_link_hash(link_hash)&.purge
+        end
+      end
+    end
   end
   
   def get_cached_stories
