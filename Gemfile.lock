@@ -106,6 +106,7 @@ GEM
     minitest (5.18.0)
     msgpack (1.6.1)
     multi_xml (0.6.0)
+    mysql2 (0.5.5)
     net-imap (0.3.4)
       date
       net-protocol
@@ -182,6 +183,7 @@ DEPENDENCIES
   image_processing (~> 1.2)
   listen (~> 3.2)
   mina
+  mysql2
   nokogiri
   puma (~> 5.0)
   rack-cors
