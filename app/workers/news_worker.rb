@@ -58,7 +58,7 @@ class NewsWorker
             if !nocache && cached_story_keys.include?(link_hash)
               story = source.get_cached_story(link_hash)
             else
-              story[:title] = CGI.unescapeHTML(entry[:title].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').gsub('&quot;', '"')).html_safe
+              story[:title] = CGI.unescapeHTML(entry[:title].force_encoding('utf-8').encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').gsub('&quot;', '"')).html_safe
               case source.name
               when 'AZ Central'
                 article = Nokogiri.HTML(entry[:content_encoded])
