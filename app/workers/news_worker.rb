@@ -17,8 +17,16 @@ class NewsWorker
       current_cached_stories = REDIS.hkeys(caches_key)
       stories_to_del = current_cached_stories.select do |cache|
         store = REDIS.hget(caches_key, cache)
-        story = JSON.parse(store)
-        story.keys.exclude?("cache_time") || Time.at(story["cache_time"].to_i) < 48.hours.ago
+        begin
+          story = JSON.parse(store)
+          story.keys.exclude?("cache_time") || Time.at(story["cache_time"].to_i) < 48.hours.ago
+        rescue
+          # if the json cant be parsed just delete
+          true          
+        end
+      end
+      if stories_to_del.count > 0
+        puts caches_key
       end
       REDIS.multi do |r|
         stories_to_del.each do |link_hash|
