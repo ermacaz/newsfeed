@@ -31,7 +31,8 @@ class NewsWorker
       REDIS.multi do |r|
         stories_to_del.each do |link_hash|
           r.hdel(caches_key, link_hash)
-          StoryImage.find_by_link_hash(link_hash)&.purge
+          StoryImage.where(:link_hash=>link_hash).each(&:purge)
+          StoryVideo.where(:link_hash=>link_hash).each(&:purge)
         end
       end
     end
@@ -126,7 +127,17 @@ class NewsWorker
                   story[:content] = ("https://teddit.net" + Nokogiri.HTML(article.css('#post').first.css('.image').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
                   img_src = story[:content]
                 elsif article.css('#post').first.css('.video').first
-                  story[:content] = ("https://teddit.net" + Nokogiri.HTML(article.css('#post').first.css('.video').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
+                  filepath = (Nokogiri.HTML(article.css('#post').first.css('.video').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
+                  if filepath
+                    v =  URI.open(("https://teddit.net" + filepath), 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36')
+                    filename = "#{link_hash}.#{filepath.match(/\.(.*)$/)[1]}"
+                    unless story_video = StoryVideo.where(:link_hash=>link_hash, :filename=>filename).first
+                      story_video =  StoryVideo.create_and_upload!(io: v, filename: filename, :link_hash=>link_hash)
+                    end
+                    story[:content] = story_video.url
+                  else
+                    story[:content] = ("https://teddit.net" + Nokogiri.HTML(article.css('#post').first.css('.video').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
+                  end
                 elsif article.css('.usertext-body').first
                   story[:content] = (article.css('.usertext-body').first.content.split("\n\n") rescue nil)
                 end

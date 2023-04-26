@@ -44,7 +44,8 @@ class NewsSource < ApplicationRecord
       REDIS.multi do |r|
         current_cached_stories.each do |link_hash|
           r.hdel(caches_key, link_hash)
-          StoryImage.find_by_link_hash(link_hash)&.purge
+          StoryImage.where(:link_hash=>link_hash).each(&:purge)
+          StoryVideo.where(:link_hash=>link_hash).each(&:purge)
         end
       end
     end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2022_12_08_014743) do
+ActiveRecord::Schema[7.0].define(version: 2023_04_26_050604) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -31,8 +31,10 @@ ActiveRecord::Schema[7.0].define(version: 2022_12_08_014743) do
     t.string "checksum"
     t.string "link_hash"
     t.datetime "created_at", null: false
+    t.string "media_type"
     t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
     t.index ["link_hash"], name: "index_active_storage_blobs_on_link_hash", unique: true
+    t.index ["media_type"], name: "index_active_storage_blobs_on_media_type"
   end
 
   create_table "active_storage_variant_records", force: :cascade do |t|
