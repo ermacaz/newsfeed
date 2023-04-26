@@ -135,6 +135,7 @@ class NewsWorker
                       story_video =  StoryVideo.create_and_upload!(io: v, filename: filename, :link_hash=>link_hash)
                     end
                     story[:content] = story_video.url
+                    story[:media_url_thumb] = story_video.preview(resize_to_limit: [StoryImage::THUMB_WIDTH, nil]).processed.url
                   else
                     story[:content] = ("https://teddit.net" + Nokogiri.HTML(article.css('#post').first.css('.video').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
                   end
