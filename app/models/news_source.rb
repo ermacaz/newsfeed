@@ -85,4 +85,19 @@ class NewsSource < ApplicationRecord
   def cache_key
     "cached_stories:#{self.name.downcase.gsub(' ','_')}"
   end
+  
+  def self.build_index
+    full_set = []
+    NewsSource.find_each do |source|
+      set = {:source_name=>source.name, :source_url=>source.url, :stories=>[]}
+      cached_feed = source.get_cached_stories
+      if cached_feed
+        cached_feed.each do |story|
+          set[:stories] << JSON.parse(story[1]).except('content').to_json
+        end
+      end
+      full_set << set
+    end
+    full_set
+  end
 end

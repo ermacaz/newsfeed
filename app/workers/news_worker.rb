@@ -4,6 +4,8 @@ class NewsWorker
   require 'nokogiri'
   require 'cgi'
   
+  NUM_STORIES = 25
+  
   if Rails.env == 'production'
     ActiveStorage::Current.url_options = { protocol: 'https', host: 'newsfeedapi.ermacaz.com' }
   else
@@ -53,9 +55,9 @@ class NewsWorker
         entry_set = {:source_name=>source.name, :source_url=>source.url, :stories=>[]}
         if skip_scan || source.feed.nil?
           puts "Loading cache for #{source.name}"
-          entry_set[:stories] = source.get_cached_stories.values.map {|a| JSON.parse(a)}.sort {|a,b| (b['cache_time'] rescue 5.years.ago) <=>  (a['cache_time'] rescue 5.years.ago)}.first(25)
+          entry_set[:stories] = source.get_cached_stories.values.map {|a| JSON.parse(a)}.sort {|a,b| (b['cache_time'] rescue 5.years.ago) <=>  (a['cache_time'] rescue 5.years.ago)}.first(NUM_STORIES)
         else
-          source.feed.entries.first(25).each do |entry|
+          source.feed.entries.first(NUM_STORIES).each do |entry|
             cached_story_keys = source.get_cached_story_keys
             story = {:source=>source.name.downcase.gsub(' ','_')}
             if source.name == 'AZ Central'
@@ -217,7 +219,8 @@ class NewsWorker
         puts e.backtrace.select {|a| a.match?(/newsfeed/i)}.inspect
       end
     end
-    REDIS.call("SET", "newsfeed", set.to_json)
+    REDIS.call("SET", "newsfeed", NewsSource.build_index.to_json)
+    # REDIS.call("SET", "newsfeed", set.to_json)
     # remove any stores not found when researching
     # REDIS.multi do |r|
     #   current_cached_stores.each do |link_hash| 
