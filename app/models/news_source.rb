@@ -93,7 +93,10 @@ class NewsSource < ApplicationRecord
       cached_feed = source.get_cached_stories
       if cached_feed
         cached_feed.each do |story|
-          set[:stories] << JSON.parse(story[1]).except('content')
+          s = JSON.parse(story[1])
+          # dont send full content just mark its present
+          s['content'] = true if s['content']
+          set[:stories] << s
         end
       end
       full_set << set
