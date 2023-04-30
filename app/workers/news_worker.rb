@@ -54,7 +54,8 @@ class NewsWorker
           skip_scan = true
         end
         next if  skip_scan || source.feed.nil?
-        source.feed.entries.first(NUM_STORIES).each do |entry|
+        # we reverse so older stories are cached first
+        source.feed.entries.first(NUM_STORIES).reverse.each do |entry|
           cached_story_keys = source.get_cached_story_keys
           story = {:source=>source.name.downcase.gsub(' ','_')}
           if source.name == 'AZ Central'
