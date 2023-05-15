@@ -92,7 +92,7 @@ class NewsSource < ApplicationRecord
       set = {:source_name=>source.name, :source_url=>source.url, :stories=>[]}
       cached_feed = source.get_cached_stories
       if cached_feed
-        cached_feed = cached_feed.sort {|a,b| ((JSON.parse(b[1])['pub_date'] || JSON.parse(b[1])['cache_time']) rescue 5.years.ago) <=>  ((JSON.parse(a[1])['pub_date'] || JSON.parse(a[1])['cache_time']) rescue 5.years.ago)}.first(NewsWorker::NUM_STORIES)
+        cached_feed = cached_feed.sort {|a,b| ((JSON.parse(b[1])['pub_date'] || JSON.parse(b[1])['cache_time']) rescue 5.years.ago.to_i) <=>  ((JSON.parse(a[1])['pub_date'] || JSON.parse(a[1])['cache_time']) rescue 5.years.ago.to_i)}.first(NewsWorker::NUM_STORIES)
         cached_feed.each do |story|
           s = JSON.parse(story[1])
           # dont send full content just mark its present
