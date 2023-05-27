@@ -160,6 +160,13 @@ class NewsWorker
             when 'The Verge'
               img_src = (Nokogiri.HTML(CGI.unescapeHTML(entry[:content])).xpath('//img').attribute('src').to_s rescue nil)
               story[:description] = (Nokogiri.HTML(CGI.unescapeHTML(entry[:content])).to_s.gsub(/(<([^>]+)>)/i, '').gsub(/\s/, ' ').strip rescue nil)
+            when 'Washington Post'
+              img_elem = article.xpath("//img")&.first
+              unless img_src = img_elem.attribute('src')
+                if srcset =  img_elem.attribute('srcset')
+                  img_src = srcset.to_s&.split(', ')&.last&.split(' ')&.first
+                end
+              end
             end
             if story[:description].blank? && entry[:description].present?
               unless source.name.match?(/Google|Slashdot|Hacker|Reddit|Verge|EasyNews/)
