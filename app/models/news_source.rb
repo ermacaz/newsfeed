@@ -86,6 +86,11 @@ class NewsSource < ApplicationRecord
     "cached_stories:#{self.name.downcase.gsub(' ','_')}"
   end
   
+  def self.update_index_cache
+    index_data = self.build_index
+    REDIS.call("SET", "newsfeed", index_data.to_json)
+  end
+  
   def self.build_index
     full_set = []
     NewsSource.find_each do |source|

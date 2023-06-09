@@ -114,7 +114,7 @@ class NewsWorker
                 img_src = entry[:media_content_url]
               when 'NHK'
                 story[:description] = CGI.unescapeHTML(entry[:description].truncate(1000).gsub(' ', '  ').encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe)
-                img_src = (source.url + '/news/html/' + article.xpath("//img")[2]&.attribute('src')&.to_s.gsub('../','') rescue nil)
+                img_src = (source.url + article.xpath("//img").first.attribute('data-src').to_s rescue nil)
                 img_src = nil if img_src&.match?(/noimg_default/)
                 if img_src&.match?(/^\//)
                   img_src = source.url + img_src
@@ -236,8 +236,7 @@ class NewsWorker
     end
     threads.each(&:join)
     puts "after thread join"
-    index_data = NewsSource.build_index
-    REDIS.call("SET", "newsfeed", index_data.to_json)
+    index_data = NewsSource.update_index_cache
     # REDIS.call("SET", "newsfeed", set.to_json)
     # remove any stores not found when researching
     # REDIS.multi do |r|
