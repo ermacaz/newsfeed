@@ -48,8 +48,13 @@ class NewsWorker
     puts "Beginning run at #{Time.zone.now.in_time_zone('Arizona')}"
     threads = []
     sources.each_with_index do |source,i|
-      begin
-        thread = Thread.new do
+      thread = Thread.new do
+        begin
+          if Rails.env == 'production'
+            ActiveStorage::Current.url_options = { protocol: 'https', host: 'newsfeedapi.ermacaz.com' }
+          else
+            ActiveStorage::Current.url_options = { protocol: 'http', host: 'localhost', port: '3001' }
+          end
           puts source.name
           skip_scan = false
           unless ((source.scan_interval.nil? || source.last_scanned_at.nil?) || (source.last_scanned_at + source.scan_interval.minutes < Time.zone.now))
@@ -154,8 +159,11 @@ class NewsWorker
                 img_src = article.xpath("//img")&.first&.attribute('src')&.to_s.gsub(/^\/\//,'https://')
                 img_src = img_src_filter(img_src)
               when 'Smithsonian'
-                img_src = (article.xpath("//img").compact[1]&.attribute('src')&.to_s.split(")/")[1] rescue nil)
-                if img_src&.match?(/^\//)
+                img_src = article.xpath("//img").compact.select {|a| a.attribute('src')&.to_s&.match?(/jpe?g$/)}.first.attribute('src')
+                unless img_src
+                  img_src = (article.xpath("//img").compact[2]&.attribute('src')&.to_s.split(")/")[1] rescue nil)
+                end
+                if img_src&.to_s&.match?(/^\//)
                   img_src = source.url + img_src
                 end
                 img_src = img_src_filter(img_src)
@@ -164,8 +172,8 @@ class NewsWorker
                 story[:description] = (Nokogiri.HTML(CGI.unescapeHTML(entry[:content])).to_s.gsub(/(<([^>]+)>)/i, '').gsub(/\s/, ' ').strip rescue nil)
               when 'Washington Post'
                 img_elem = article.xpath("//img")&.first
-                unless img_src = img_elem.attribute('src')
-                  if srcset =  img_elem.attribute('srcset')
+                unless img_src = (img_elem.attribute('src').to_s rescue nil)
+                  if srcset =  img_elem&.attribute('srcset')
                     img_src = srcset.to_s&.split(', ')&.last&.split(' ')&.first
                   end
                 end
@@ -218,13 +226,13 @@ class NewsWorker
           end
           source.update!(:last_scanned_at=>Time.zone.now)
           puts "#{source.name} complete"
+        rescue Exception=>e
+          puts e
+          puts e.backtrace.select {|a| a.match?(/newsfeed/i)}.inspect
         end
-        thread.report_on_exception = false
-        threads << thread
-      rescue Exception=>e
-        puts e
-        puts e.backtrace.select {|a| a.match?(/newsfeed/i)}.inspect
       end
+      thread.report_on_exception = false
+      threads << thread
     end
     threads.each(&:join)
     puts "after thread join"
@@ -243,6 +251,7 @@ class NewsWorker
   end
   
   def img_src_filter(img_src)
+    img_src = img_src&.to_s
     if img_src&.match?(/favicon/) || !img_src&.match?(/png|jpg|jpeg|gif|webp|webm/)
       img_src = nil
     end
