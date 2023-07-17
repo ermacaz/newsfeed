@@ -9,7 +9,7 @@ namespace :db do
     end
     NewsSource.create(name: 'Reddit',
                       url: 'https://reddit.com',
-                      feed_url: 'https://www.teddit.net/?api&type=rss',
+                      feed_url: 'https://reddit.lol/?api&type=rss',
                       :scan_interval=>60)
     NewsSource.create(name: 'New York Times',
                       url: 'https://nytimes.com',
