@@ -171,8 +171,8 @@ class NewsWorker
                 img_src = (Nokogiri.HTML(CGI.unescapeHTML(entry[:content])).xpath('//img').attribute('src').to_s rescue nil)
                 story[:description] = (Nokogiri.HTML(CGI.unescapeHTML(entry[:content])).to_s.gsub(/(<([^>]+)>)/i, '').gsub(/\s/, ' ').strip rescue nil)
               when 'Washington Post'
-                img_elem = article.xpath("//img")&.first
-                img_src = (img_elem.attribute('src').to_s rescue nil)
+                img_elem = article.xpath("//img").reject {|v| v.attribute('src')&.value&.match(/authors/)}.first
+                img_src = (img_elem&.attribute('src')&.to_s rescue nil)
                 unless img_src.present?
                   if srcset =  img_elem&.attribute('srcset')
                     img_src = srcset.to_s&.split(', ')&.last&.split(' ')&.first
