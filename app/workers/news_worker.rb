@@ -66,9 +66,9 @@ class NewsWorker
             cached_story_keys = source.get_cached_story_keys
             story = {:source=>source.name.downcase.gsub(' ','_'), :pub_date=>(entry[:pubDate]&.to_i || entry[:published]&.to_i || DateTime.now&.to_i)}
             if source.name == 'AZ Central'
-              story[:link] = entry[:feedburner_origLink].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('reddit.com','reddit.lol')
+              story[:link] = entry[:feedburner_origLink].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
             else
-              story[:link] = entry[:link].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('reddit.com','reddit.lol')
+              story[:link] = entry[:link].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('teddit.net','reddit.com')
             end
             link_hash = Digest::MD5.hexdigest story[:link]
             if !nocache && cached_story_keys.include?(link_hash)
