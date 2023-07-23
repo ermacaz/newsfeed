@@ -57,9 +57,9 @@ class NewsWorker
           end
           puts source.name
           skip_scan = false
-          unless ((source.scan_interval.nil? || source.last_scanned_at.nil?) || (source.last_scanned_at + source.scan_interval.minutes < Time.zone.now))
-            skip_scan = true
-          end
+          # unless ((source.scan_interval.nil? || source.last_scanned_at.nil?) || (source.last_scanned_at + source.scan_interval.minutes < Time.zone.now))
+          #   skip_scan = true
+          # end
           next if  skip_scan || source.feed.nil?
           # we reverse so older stories are cached first
           source.feed.entries.first(NUM_STORIES).reverse.each do |entry|
@@ -68,7 +68,8 @@ class NewsWorker
             if source.name == 'AZ Central'
               story[:link] = entry[:feedburner_origLink].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
             else
-              story[:link] = entry[:link].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
+              # story[:link] = entry[:link].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('teddit.net','reddit.com')
+              story[:link] = entry[:link].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('reddit.com','teddit.net')
             end
             link_hash = Digest::MD5.hexdigest story[:link]
             if !nocache && cached_story_keys.include?(link_hash)
@@ -135,13 +136,46 @@ class NewsWorker
                 img_src = (Nokogiri.HTML(CGI.unescapeHTML(entry[:description])).xpath('//img').attribute('src').to_s rescue nil)
                 parts = article.css('.fdn-content-body').first.content.strip.split("\n\n")
               when 'Reddit'
+                # post_type = article.css('shreddit-post').attribute('post-type').value
+                # case post_type
+                # when 'gallery'
+                #   img_src = article.css('gallery-carousel img').first.attribute('src').value
+                #   img = process_img(img_src, link_hash)
+                #   if img
+                #     story[:media_url_thumb] = img.thumb_url
+                #     story[:media_url]       = img.story_image_url
+                #     story[:content] = img.story_image_url
+                #   end
+                # when 'image'
+                #   img_src = article.css('shreddit-post img').first.attribute('src').value
+                #   img = process_img(img_src, link_hash)
+                #   if img
+                #     story[:media_url_thumb] = img.thumb_url
+                #     story[:media_url]       = img.story_image_url
+                #     story[:content] = img.story_image_url
+                #   end
+                # when 'video'
+                #   j = (JSON.parse article.css('shreddit-player').attribute('packaged-media-json').value rescue nil)
+                #   if j
+                #     video_src = j['playbackMp4s']['permutations'].last['source']['url']
+                #     filename = "#{link_hash}.mp4"
+                #     unless story_video = StoryVideo.where(:link_hash=>link_hash, :filename=>filename).first
+                #       v = URI.open(video_src, 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36')
+                #       story_video =  StoryVideo.create_and_upload!(io: v, filename: filename, :link_hash=>link_hash)
+                #       story[:content] = story_video.url
+                #       story[:media_url_thumb] = story_video.preview(resize_to_limit: [StoryImage::THUMB_WIDTH, nil]).processed.url
+                #     end
+                #   else #text
+                #     story[:content] = entry[:content].gsub('&lt;!-- SC_OFF --&gt;&lt;div class=&quot;md&quot;&gt;&lt;p&gt;','').gsub(/&lt;\/p&gt; &lt;\/div&gt;&lt;!-- SC_ON.*/, '')
+                #   end
+                # # teddit format
                 if article.css('#post')&.first&.css('.image')&.first
-                  story[:content] = ("https://reddit.lol/" + Nokogiri.HTML(article.css('#post').first.css('.image').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
+                  story[:content] = ("https://teddit.net" + Nokogiri.HTML(article.css('#post').first.css('.image').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
                   img_src = story[:content]
                 elsif article.css('#post')&.first&.css('.video')&.first
                   filepath = (Nokogiri.HTML(article.css('#post').first.css('.video').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
                   if filepath
-                    v =  URI.open(("https://reddit.lol/" + filepath), 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36')
+                    v =  URI.open(("https://teddit.net" + filepath), 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36')
                     filename = "#{link_hash}.#{filepath.match(/\.(.*)$/)[1]}"
                     unless story_video = StoryVideo.where(:link_hash=>link_hash, :filename=>filename).first
                       story_video =  StoryVideo.create_and_upload!(io: v, filename: filename, :link_hash=>link_hash)
@@ -149,12 +183,11 @@ class NewsWorker
                     story[:content] = story_video.url
                     story[:media_url_thumb] = story_video.preview(resize_to_limit: [StoryImage::THUMB_WIDTH, nil]).processed.url
                   else
-                    story[:content] = ("https://reddit.lol/" + Nokogiri.HTML(article.css('#post').first.css('.video').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
+                    story[:content] = ("https://teddit.net" + Nokogiri.HTML(article.css('#post').first.css('.video').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
                   end
                 elsif article.css('.usertext-body').first
                   story[:content] = (article.css('.usertext-body').first.content.split("\n\n") rescue nil)
                 end
-                story[:link] = story[:link].gsub('teddit.net','reddit.com')
               when 'Slashdot'
                 parts = article.css('.body').first.content.strip.split("\n\n")
                 img_src = article.xpath("//img")&.first&.attribute('src')&.to_s.gsub(/^\/\//,'https://')
