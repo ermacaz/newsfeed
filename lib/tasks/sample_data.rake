@@ -9,7 +9,7 @@ namespace :db do
     end
     NewsSource.create(name: 'Reddit',
                       url: 'https://reddit.com',
-                      feed_url: 'https://teddit.net/?api&type=rss',
+                      feed_url: "https://#{NewsSource::TEDDIT_URL}/?api&type=rss",
                       :scan_interval=>60)
     NewsSource.create(name: 'New York Times',
                       url: 'https://nytimes.com',
@@ -50,9 +50,9 @@ namespace :db do
                       url: 'https://news.ycombinator.com',
                       feed_url: 'https://news.ycombinator.com/rss',
                       :scan_interval=>60)
-    NewsSource.create(name: 'Kotaku',
-                      url: 'https://kotaku.com',
-                      feed_url: 'https://kotaku.com/rss')
+    # NewsSource.create(name: 'Kotaku',
+    #                   url: 'https://kotaku.com',
+    #                   feed_url: 'https://kotaku.com/rss')
     NewsSource.create(name: 'PC GAMER',
                       url: 'https://www.pcgamer.com/',
                       feed_url: 'https://www.pcgamer.com/rss/')

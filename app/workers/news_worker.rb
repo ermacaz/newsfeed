@@ -47,6 +47,8 @@ class NewsWorker
   def scrape(sources=NewsSource.active, nocache=false)
     puts "Beginning run at #{Time.zone.now.in_time_zone('Arizona')}"
     threads = []
+    NewsSource.update_teddit_source
+    sources.each(&:reload)
     sources.each_with_index do |source,i|
       thread = Thread.new do
         begin
@@ -68,8 +70,8 @@ class NewsWorker
             if source.name == 'AZ Central'
               story[:link] = entry[:feedburner_origLink].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
             else
-              # story[:link] = entry[:link].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('teddit.net','reddit.com')
-              story[:link] = entry[:link].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('reddit.com','teddit.net')
+              # story[:link] = entry[:link].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub(NewsSource::TEDDIT_URL,'reddit.com')
+              story[:link] = entry[:link].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe.gsub('reddit.com', NewsSource::TEDDIT_URL)
             end
             link_hash = Digest::MD5.hexdigest story[:link]
             if !nocache && cached_story_keys.include?(link_hash)
@@ -170,12 +172,12 @@ class NewsWorker
                 #   end
                 # # teddit format
                 if article.css('#post')&.first&.css('.image')&.first
-                  story[:content] = ("https://teddit.net" + Nokogiri.HTML(article.css('#post').first.css('.image').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
+                  story[:content] = ("https://#{NewsSource::TEDDIT_URL}" + Nokogiri.HTML(article.css('#post').first.css('.image').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
                   img_src = story[:content]
                 elsif article.css('#post')&.first&.css('.video')&.first
                   filepath = (Nokogiri.HTML(article.css('#post').first.css('.video').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
                   if filepath
-                    v =  URI.open(("https://teddit.net" + filepath), 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36')
+                    v =  URI.open(("https://#{NewsSource::TEDDIT_URL}" + filepath), 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36')
                     filename = "#{link_hash}.#{filepath.match(/\.(.*)$/)[1]}"
                     unless story_video = StoryVideo.where(:link_hash=>link_hash, :filename=>filename).first
                       story_video =  StoryVideo.create_and_upload!(io: v, filename: filename, :link_hash=>link_hash)
@@ -183,7 +185,7 @@ class NewsWorker
                     story[:content] = story_video.url
                     story[:media_url_thumb] = story_video.preview(resize_to_limit: [StoryImage::THUMB_WIDTH, nil]).processed.url
                   else
-                    story[:content] = ("https://teddit.net" + Nokogiri.HTML(article.css('#post').first.css('.video').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
+                    story[:content] = ("https://#{NewsSource::TEDDIT_URL}" + Nokogiri.HTML(article.css('#post').first.css('.video').first.inner_html).xpath('//a').first.attribute('href').to_s rescue nil)
                   end
                 elsif article.css('.usertext-body').first
                   story[:content] = (article.css('.usertext-body').first.content.split("\n\n") rescue nil)

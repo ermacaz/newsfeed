@@ -1,12 +1,22 @@
 class NewsSource < ApplicationRecord
   scope :active, -> {where(:enabled=>true)}
   
+  TEDDIT_URL = "teddit.hostux.net"
+  
+  def self.update_teddit_source
+    NewsSource.find_by_name('Reddit').update!(:feed_url=>"https://#{NewsSource::TEDDIT_URL}/r/All?api&type=rss")
+  end
+  
   before_save :set_slug
   def set_slug
     self.slug = self.name.downcase.gsub(' ', '_')
   end
   
   attr_accessor :feed
+  
+  def scrape
+    NewsWorker.new.scrape([self])
+  end
   
   def feed
     unless @feed
