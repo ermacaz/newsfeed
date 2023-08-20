@@ -282,7 +282,7 @@ class NewsWorker
     #     StoryImage.find_by_link_hash(link_hash)&.purge
     #   end
     # end
-    ActionCable.server.broadcast 'news_sources_channel', index_data
+    # ActionCable.server.broadcast 'news_sources_channel', index_data
     return true
   end
   
