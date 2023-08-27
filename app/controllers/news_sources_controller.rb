@@ -39,17 +39,20 @@ class NewsSourcesController < ApplicationController
   
   def rss
     cache = JSON.parse(REDIS.call('get', 'newsfeed') || "[]")
-    latest_stories = cache.map {|a| a['stories'].sort {|a| a['pub_date'] || a['cache_time']}.last(3)}.flatten.sort {|a| a['pub_date'] || a['cache_time']}.last(15)
+    latest_stories = cache.map {|a| a['stories'].sort {|x,y| (x['pub_date'] || x['cache_time']) <=> (y['pub_date'] || y['cache_time'])}.reverse.first(3)}.flatten.sort {|x,y| (x['pub_date'] || x['cache_time']) <=> (y['pub_date'] || y['cache_time'])}.reverse.first(15)
     if latest_stories.any?
-      rss = RSS::Maker.make("atom") do |maker|
+      rss = RSS::Maker.make("2.0") do |maker|
         maker.channel.author = "ermacaz"
         maker.channel.updated = Time.now.to_s
         maker.channel.about = "https://newsfeed.ermacaz.com/news_sources/rss.rss"
+        maker.channel.link = "https://newsfeed.ermacaz.com/news_sources/rss.rss"
+        maker.channel.description = "All feeds"
         maker.channel.title = "All feeds"
         
         latest_stories.each do |story|
           maker.items.new_item do |item|
-            item.link = story["link"]
+            link_hash = Digest::MD5.hexdigest(story['link'])
+            item.link = "https://newsfeed.ermacaz.com/#/#{story['source']}/#{link_hash}"
             item.title = story["title"]
             item.description = story["description"]
             item.updated = Time.at(story['pub_date'] || story["cache_time"]).to_s
