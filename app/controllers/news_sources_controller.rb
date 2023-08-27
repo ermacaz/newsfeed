@@ -16,6 +16,52 @@ class NewsSourcesController < ApplicationController
     render :head=>:ok
   end
   
+  def rss_feed
+    @news_source = NewsSource.find_by_slug(params[:slug])
+    cached_stories = REDIS.hvals(@news_source.cache_key).map {|s| JSON.parse(s)}.sort {|a| a['cached_time']}.reverse.first(10)
+    if cached_stories.any?
+      rss = RSS::Maker.make("atom") do |maker|
+        maker.channel.author = "ermacaz"
+        maker.channel.updated = Time.now.to_s
+        maker.channel.about = "https://newsfeed.ermacaz.com/news_sources/rss_feed/#{params[:slug]}.rss"
+        maker.channel.title = "Feed for #{@news_source.name}"
+        
+        cached_stories.each do |story|
+          maker.items.new_item do |item|
+            item.link = story["link"]
+            item.title = story["title"]
+            item.updated = Time.at(story["cache_time"]).to_s
+          end
+        end
+      end   
+    end
+  end
+  
+  def rss
+    cache = JSON.parse(REDIS.call('get', 'newsfeed') || "[]")
+    latest_stories = cache.map {|a| a['stories'].sort {|a| a['pub_date'] || a['cache_time']}.last(3)}.flatten.sort {|a| a['pub_date'] || a['cache_time']}.last(15)
+    if latest_stories.any?
+      rss = RSS::Maker.make("atom") do |maker|
+        maker.channel.author = "ermacaz"
+        maker.channel.updated = Time.now.to_s
+        maker.channel.about = "https://newsfeed.ermacaz.com/news_sources/rss.rss"
+        maker.channel.title = "All feeds"
+        
+        latest_stories.each do |story|
+          maker.items.new_item do |item|
+            item.link = story["link"]
+            item.title = story["title"]
+            item.description = story["description"]
+            item.updated = Time.at(story['pub_date'] || story["cache_time"]).to_s
+          end
+        end
+      end
+    else
+      rss = ""
+    end
+    render :xml=>rss.to_s, :layout=>false
+  end
+  
   def get_story
     source = NewsSource.find_by_slug(params[:source_name])
     render :json=>REDIS.hget(source.cache_key, params[:story_hash])
