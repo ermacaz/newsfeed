@@ -49,7 +49,7 @@ class NewsWorker
     threads = []
     NewsSource.update_teddit_source
     sources.each(&:reload)
-    sources.each_with_index do |source,i|
+    sources.each do |source|
       thread = Thread.new do
         begin
           if Rails.env == 'production'
@@ -108,7 +108,7 @@ class NewsWorker
                 else
                   img_src = (Nokogiri.HTML(entry[:description]).xpath('//img').first.attr('src').encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
                 end
-                img_src = (Nokogiri.HTML(entry[:description]).xpath('//img').first.attr('src').encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
+                # img_src = (Nokogiri.HTML(entry[:description]).xpath('//img').first.attr('src').encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
                 story[:description] =  CGI.unescapeHTML((Nokogiri.HTML(entry[:description]).xpath("//p")[1].content.truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil))
               when "Kotaku"
                 story[:description] =  CGI.unescapeHTML((Nokogiri.HTML(entry[:description]).xpath("//p").first.content.truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil))
@@ -298,7 +298,6 @@ class NewsWorker
     begin
       unless story_image = StoryImage.find_by_link_hash(link_hash)
         img = URI.open(img_src, 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36')
-        filename = ''
         case img_src
         when /\.jpe?g/i
           filename = "#{link_hash}.jpg"

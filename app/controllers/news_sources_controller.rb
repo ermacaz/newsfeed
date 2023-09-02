@@ -38,7 +38,7 @@ class NewsSourcesController < ApplicationController
   end
   
   def rss
-    cache = JSON.parse(REDIS.call('get', 'newsfeed') || "[]")
+    cache = JSON.parse(REDIS.call('get', 'newsfeed') || "[]").reject {|c| c['source_name'] == 'Reddit'}
     latest_stories = cache.map {|a| a['stories'].sort {|x,y| (x['pub_date'] || x['cache_time']) <=> (y['pub_date'] || y['cache_time'])}.reverse.first(3)}.flatten.sort {|x,y| (x['pub_date'] || x['cache_time']) <=> (y['pub_date'] || y['cache_time'])}.reverse.first(15)
     if latest_stories.any?
       rss = RSS::Maker.make("2.0") do |maker|

@@ -78,6 +78,7 @@ class NewsSource < ApplicationRecord
           StoryImage.where(:link_hash=>link_hash).each(&:purge)
           StoryVideo.where(:link_hash=>link_hash).each(&:purge)
         rescue
+          puts "unable to purge image/video with hash #{link_hash}"
         end
       end
     end
