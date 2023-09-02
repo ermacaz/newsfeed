@@ -1,7 +1,7 @@
 class NewsSource < ApplicationRecord
   scope :active, -> {where(:enabled=>true)}
   
-  TEDDIT_URL = "teddit.hostux.net"
+  TEDDIT_URL = "teddit.ermacaz.com"
   
   def self.update_teddit_source
     NewsSource.find_by_name('Reddit').update!(:feed_url=>"https://#{NewsSource::TEDDIT_URL}/r/All?api&type=rss")
