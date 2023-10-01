@@ -18,6 +18,34 @@ class NewsSource < ApplicationRecord
     NewsWorker.new.scrape([self])
   end
   
+  def self.clear_old_caches
+    puts "Beginning run at #{Time.zone.now.in_time_zone('Arizona')}"
+    current_caches = REDIS.smembers("newsfeed_caches")
+    current_caches.each do |caches_key|
+      current_cached_stories = REDIS.hkeys(caches_key)
+      stories_to_del = current_cached_stories.select do |cache|
+        store = REDIS.hget(caches_key, cache)
+        begin
+          story = JSON.parse(store)
+          story.keys.exclude?("cache_time") || Time.at(story["cache_time"].to_i) < 48.hours.ago
+        rescue
+          # if the json cant be parsed just delete
+          true
+        end
+      end
+      if stories_to_del.count > 0
+        puts caches_key
+      end
+      REDIS.multi do |r|
+        stories_to_del.each do |link_hash|
+          r.hdel(caches_key, link_hash)
+          StoryImage.where(:link_hash=>link_hash).each(&:purge)
+          StoryVideo.where(:link_hash=>link_hash).each(&:purge)
+        end
+      end
+    end
+  end
+  
   def feed
     unless @feed
       begin
