@@ -96,7 +96,7 @@ class NewsWorker
                   index = parts.index(comment_part)
                   parts = parts.reverse.drop(parts.length-index).reverse
                 end
-              when "Hacker News"
+              when "Hacker News", "Google News"
                 img_src = article.xpath("//img")&.first&.attribute('src')&.to_s
                 if img_src&.match?(/^\//)
                   img_src = nil
