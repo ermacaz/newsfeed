@@ -86,6 +86,11 @@ class NewsWorker
               else
                 article = Nokogiri.HTML(HTTParty.get(story[:link], :headers=>{'User-agent'=>'ermacaz'}).body)
               end
+              if source.name == 'Google News'
+                #capture real article from redirect page
+                story[:link] = article.css('a').first.attribute('href').value
+                article = Nokogiri.HTML(HTTParty.get(story[:link], :headers=>{'User-agent'=>'ermacaz'}).body)
+              end
               img_src = nil
               case source.name
               when 'Ars Technica'
