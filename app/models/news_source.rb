@@ -79,13 +79,9 @@ class NewsSource < ApplicationRecord
     current_caches = REDIS.smembers("newsfeed_caches")
     current_caches.each do |caches_key|
       current_cached_stories = REDIS.hkeys(caches_key)
-      REDIS.multi do |r|
-        current_cached_stories.each do |link_hash|
-          r.hdel(caches_key, link_hash)
-          StoryImage.where(:link_hash=>link_hash).each(&:purge)
-          StoryVideo.where(:link_hash=>link_hash).each(&:purge)
-        end
-      end
+      REDIS.hdel(caches_key, current_cached_stories)
+      StoryImage.where(:link_hash=>current_cached_stories).each(&:purge)
+      StoryVideo.where(:link_hash=>current_cached_stories).each(&:purge)
     end
   end
   
