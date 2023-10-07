@@ -1,6 +1,5 @@
 class NewsSourcesController < ApplicationController
   include ActiveStorage::SetCurrent
-  before_action :set_news_source, only: [:show, :update, :destroy]
 
   # GET /news_sources
   def index
