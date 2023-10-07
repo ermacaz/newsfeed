@@ -95,17 +95,9 @@ class NewsSource < ApplicationRecord
   
   def delete_cached_stories
     current_cached_stories = REDIS.hkeys(self.cache_key)
-    REDIS.multi do |r|
-      current_cached_stories.each do |link_hash|
-        r.hdel(self.cache_key, link_hash)
-        begin
-          StoryImage.where(:link_hash=>link_hash).each(&:purge)
-          StoryVideo.where(:link_hash=>link_hash).each(&:purge)
-        rescue
-          puts "unable to purge image/video with hash #{link_hash}"
-        end
-      end
-    end
+    REDIS.hdel(self.cache_key, current_cached_stories)
+    StoryImage.where(:link_hash=>current_cached_stories).each {|a| begin a.purge rescue puts "unable to purge image/video with hash #{a.link_hash}" end}
+    StoryVideo.where(:link_hash=>current_cached_stories).each {|a| begin a.purge rescue puts "unable to purge image/video with hash #{a.link_hash}" end}
   end
   
   def get_cached_story(link_hash)
