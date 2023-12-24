@@ -120,7 +120,7 @@ class NewsSource < ApplicationRecord
   
   def self.build_index
     full_set = []
-    NewsSource.find_each do |source|
+    NewsSource.active.find_each do |source|
       set = {:source_name=>source.name, :source_url=>source.url, :stories=>[]}
       cached_feed = source.get_cached_stories
       if cached_feed
