@@ -37,7 +37,7 @@ task :remote_environment do
   # invoke :'rbenv:load'
   
   # For those using RVM, use this to load an RVM version@gemset.
-  invoke :'rvm:use', 'ruby-3.2.2@default'
+  invoke :'rvm:use', 'ruby-3.3.0@default'
 end
 
 # Put any custom commands you need to run at setup
@@ -63,9 +63,9 @@ task :deploy do
     invoke :'git:clone'
     invoke :'deploy:link_shared_paths'
     command %{export PATH=/usr/local/rvm/bin:$PATH}
-    command %{export PATH=/usr/local/rvm/gems/ruby-3.2.2/bin:$PATH}
-    command %{export PATH=/usr/local/rvm/gems/ruby-3.2.2@global/bin:$PATH}
-    command %{export PATH=:/usr/local/rvm/rubies/ruby-3.2.2/bin:$PATH}
+    command %{export PATH=/usr/local/rvm/gems/ruby-3.3.0/bin:$PATH}
+    command %{export PATH=/usr/local/rvm/gems/ruby-3.3.0@global/bin:$PATH}
+    command %{export PATH=:/usr/local/rvm/rubies/ruby-3.3.0/bin:$PATH}
     command %{bundle config set --local path 'vendor/bundle'}
     invoke :"bundle:install"
     # command 'DISABLE_DATABASE_ENVIRONMENT_CHECK=1 RAILS_ENV=production bin/rails db:populate'
@@ -88,9 +88,9 @@ end
 task :wipe_caches do
   command %{cd /var/www/newsfeed/current}
   command %{export PATH=/usr/local/rvm/bin:$PATH}
-  command %{export PATH=/usr/local/rvm/gems/ruby-3.2.2/bin:$PATH}
-  command %{export PATH=/usr/local/rvm/gems/ruby-3.2.2@global/bin:$PATH}
-  command %{export PATH=:/usr/local/rvm/rubies/ruby-3.2.2/bin:$PATH}
+  command %{export PATH=/usr/local/rvm/gems/ruby-3.3.0/bin:$PATH}
+  command %{export PATH=/usr/local/rvm/gems/ruby-3.3.0@global/bin:$PATH}
+  command %{export PATH=:/usr/local/rvm/rubies/ruby-3.3.0/bin:$PATH}
   command %{bundle config set --local path 'vendor/bundle'}
   command %{RAILS_ENV=production bin/rails wipe_caches}
 end
