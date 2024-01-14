@@ -44,6 +44,7 @@ class NewsSource < ApplicationRecord
         end
       end
     end
+    NewsSource.update_index_cache
   end
   
   def feed

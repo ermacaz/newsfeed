@@ -37,7 +37,7 @@ class NewsWorker
           # we reverse so older stories are cached first
           source.feed.entries.first(NUM_STORIES).reverse.each do |entry|
             cached_story_keys = source.get_cached_story_keys
-            story = {:source=>source.name.downcase.gsub(' ','_'), :pub_date=>(entry[:pubDate]&.to_i || entry[:published]&.to_i || DateTime.now&.to_i)}
+            story = {:source=>source.slug, :pub_date=>(entry[:pubDate]&.to_i || entry[:published]&.to_i || DateTime.now&.to_i)}
             if source.name == 'AZ Central'
               story[:link] = entry[:feedburner_origLink].encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe
             else
