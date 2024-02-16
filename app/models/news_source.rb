@@ -1,5 +1,6 @@
 class NewsSource < ApplicationRecord
   scope :active, -> {where(:enabled=>true)}
+  scope :in_order, -> {order('list_order')}
   
   TEDDIT_URL = "teddit.ermacaz.com"
   
@@ -121,7 +122,7 @@ class NewsSource < ApplicationRecord
   
   def self.build_index
     full_set = []
-    NewsSource.active.find_each do |source|
+    NewsSource.active.in_order.each do |source|
       set = {:source_name=>source.name, :source_url=>source.url, :stories=>[]}
       cached_feed = source.get_cached_stories
       if cached_feed

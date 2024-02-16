@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2023_10_07_045403) do
+ActiveRecord::Schema[7.1].define(version: 2024_02_16_042115) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -54,6 +54,8 @@ ActiveRecord::Schema[7.1].define(version: 2023_10_07_045403) do
     t.string "slug"
     t.integer "scan_interval"
     t.datetime "last_scanned_at"
+    t.integer "list_order"
+    t.index ["list_order"], name: "index_news_sources_on_list_order"
     t.index ["slug"], name: "index_news_sources_on_slug"
   end
 
