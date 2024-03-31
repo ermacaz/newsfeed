@@ -15,6 +15,16 @@ class NewsSourcesController < ApplicationController
     render :head=>:ok
   end
   
+  def update_layout
+    layout_order = params[:layout_order]
+    
+    layout_order.each do |item|
+      NewsSource.find(item[:id]).update!(list_order: item[:list_order])
+    end
+    NewsSource.update_index_cache
+    render :status=>:ok
+  end
+  
   def rss_feed
     @news_source = NewsSource.find_by_slug(params[:slug])
     cached_stories = REDIS.hvals(@news_source.cache_key).map {|s| JSON.parse(s)}.sort {|a| a['cached_time']}.reverse.first(10)

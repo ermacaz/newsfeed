@@ -122,8 +122,8 @@ class NewsSource < ApplicationRecord
   
   def self.build_index
     full_set = []
-    NewsSource.active.in_order.each do |source|
-      set = {:source_name=>source.name, :source_url=>source.url, :stories=>[]}
+    NewsSource.active.in_order.each_with_index do |source,i|
+      set = {:source_name=>source.name, :source_url=>source.url, :list_order=>i, :source_id=>source.id, :stories=>[]}
       cached_feed = source.get_cached_stories
       if cached_feed
         cached_feed = cached_feed.sort {|a,b| ((JSON.parse(b[1])['pub_date'] || JSON.parse(b[1])['cache_time']) rescue 5.years.ago.to_i) <=>  ((JSON.parse(a[1])['pub_date'] || JSON.parse(a[1])['cache_time']) rescue 5.years.ago.to_i)}.first(NewsWorker::NUM_STORIES)
