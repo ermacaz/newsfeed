@@ -70,4 +70,7 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions
   config.action_controller.raise_on_missing_callback_actions = true
+  
+  #Append comments with runtime information tags to SQL queries in logs.
+  config.active_record.query_log_tags_enabled = true
 end

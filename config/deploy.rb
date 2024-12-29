@@ -88,9 +88,9 @@ end
 task :wipe_caches do
   command %{cd /var/www/newsfeed/current}
   command %{export PATH=/usr/local/rvm/bin:$PATH}
-  command %{export PATH=/usr/local/rvm/gems/ruby-3.3.5/bin:$PATH}
-  command %{export PATH=/usr/local/rvm/gems/ruby-3.3.5@global/bin:$PATH}
-  command %{export PATH=:/usr/local/rvm/rubies/ruby-3.3.5/bin:$PATH}
+  command %{export PATH=/usr/local/rvm/gems/ruby-3.4.1/bin:$PATH}
+  command %{export PATH=/usr/local/rvm/gems/ruby-3.4.1@global/bin:$PATH}
+  command %{export PATH=:/usr/local/rvm/rubies/ruby-3.4.1/bin:$PATH}
   command %{bundle config set --local path 'vendor/bundle'}
   command %{RAILS_ENV=production bin/rails wipe_caches}
 end
