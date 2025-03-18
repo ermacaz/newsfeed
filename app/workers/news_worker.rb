@@ -223,7 +223,7 @@ class NewsWorker
                 end
               end
               if img_src&.strip&.present?
-                story_image = process_img(img_src, link_hash)
+                story_image = process_img(img_src, link_hash, source)
                 if story_image
                   story[:media_url_thumb] = story_image.thumb_url
                   story[:media_url]       = story_image.story_image_url
@@ -280,7 +280,7 @@ class NewsWorker
     img_src
   end
   
-  def process_img(img_src, link_hash)
+  def process_img(img_src, link_hash, source)
     begin
       unless story_image = StoryImage.find_by_link_hash(link_hash)
         img = URI.open(img_src, 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36')
