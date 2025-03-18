@@ -64,6 +64,10 @@ class NewsWorker
               end
               img_src = nil
               case source.name
+              when '朝日新聞'
+                img_src = article.css('figure img')&.first&.attribute('srcset')&.to_s&.gsub(/^\/\//,'')
+              when '毎日新聞'
+                img_src = article.css('picture img')&.first&.attribute('src')&.to_s
               when 'Ars Technica'
                 img_src = (Nokogiri.HTML(CGI.unescapeHTML(entry[:content_encoded])).xpath('//img').attribute('src').to_s rescue nil)
                 parts = (article.css('.article-content').first.xpath("//p").map(&:content).drop(4) rescue [])
@@ -101,6 +105,8 @@ class NewsWorker
                 img_src = img_src_filter(img_src)
               when 'NHK EasyNews'
                 story[:title] = story[:title].gsub(/^\[\d\d\/\d\d\/\d\d\d\d\]/, '').strip
+              when 'Nikkei'
+                img_src = article.css('.image-main')&.first&.attribute('src')&.to_s
               when 'No Recipes'
                 story[:description] =  CGI.unescapeHTML((Nokogiri.HTML(entry[:description]).xpath("//p").first.content.truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil))
                 img_src = article.xpath("//img")[5]&.attribute('src')&.to_s
@@ -182,6 +188,8 @@ class NewsWorker
               when 'The Verge'
                 img_src = (Nokogiri.HTML(CGI.unescapeHTML(entry[:content])).xpath('//img').attribute('src').to_s rescue nil)
                 story[:description] = (Nokogiri.HTML(CGI.unescapeHTML(entry[:content])).to_s.gsub(/(<([^>]+)>)/i, '').gsub(/\s/, ' ').strip rescue nil)
+              when 'Tokyo Reporter'
+                img_src = article.css('.post-content figure img')&.first&.attribute('src')&.to_s
               when 'Washington Post'
                 img_elem = article.xpath("//img").reject {|v| v.attribute('src')&.value&.match(/authors/)}.first
                 img_src = (img_elem&.attribute('src')&.to_s rescue nil)
@@ -205,7 +213,7 @@ class NewsWorker
                   img_src = (Nokogiri.parse(entry[:content_encoded])&.xpath("//img")&.first&.attribute('src')&.to_s rescue nil)
                 end
                 if img_src.blank? && article
-                  img_src = article.xpath("//img")&.first&.attribute('src')&.to_s
+                  img_src = article.css('figure img')&.first&.attribute('src')&.to_s
                   if img_src&.match?(/^\//)
                     img_src = source.url + img_src
                   end
