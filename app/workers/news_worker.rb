@@ -18,6 +18,7 @@ class NewsWorker
   def scrape(sources=NewsSource.active, nocache=false)
     puts "Beginning run at #{Time.zone.now.in_time_zone('Arizona')}"
     threads = []
+    sources = [sources] unless sources.is_a?(Array)
     NewsSource.update_teddit_source
     sources.each(&:reload)
     sources.each do |source|
@@ -64,8 +65,9 @@ class NewsWorker
               end
               img_src = nil
               case source.name
-              when '朝日新聞'
+              when '朝日新聞','Asahi'
                 img_src = article.css('figure img')&.first&.attribute('srcset')&.to_s&.gsub(/^\/\//,'')
+                img_src = "https://" + img_src if img_src&.match?(/^www/)
               when '毎日新聞'
                 img_src = article.css('picture img')&.first&.attribute('src')&.to_s
               when 'Ars Technica'
@@ -162,7 +164,7 @@ class NewsWorker
                     v =  URI.open(("https://#{NewsSource::TEDDIT_URL}" + filepath), 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36')
                     filename = "#{link_hash}.#{filepath.match(/\.(.*)$/)[1]}"
                     unless story_video = StoryVideo.where(:link_hash=>link_hash, :filename=>filename).first
-                      story_video =  StoryVideo.create_and_upload!(io: v, filename: filename, :link_hash=>link_hash)
+                      story_video =  StoryVideo.create_and_upload!(io: v, filename: filename, :link_hash=>link_hash, :record=>source)
                     end
                     story[:content] = story_video.url
                     story[:media_url_thumb] = story_video.preview(resize_to_limit: [StoryImage::THUMB_WIDTH, nil]).processed.url
@@ -292,7 +294,7 @@ class NewsWorker
         else
           filename = "#{link_hash}.jpg"
         end
-        story_image = StoryImage.create_and_upload!(io: img, filename: filename, :link_hash=>link_hash)
+        story_image = StoryImage.create_and_upload!(io: img, filename: filename, :link_hash=>link_hash, :record=>source)
         story_image.create_image_variants
       end
       story_image
