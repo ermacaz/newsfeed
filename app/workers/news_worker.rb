@@ -120,7 +120,7 @@ class NewsWorker
                 parts = article.css('#article-body').first.xpath("//p").map(&:content).map {|a| a.gsub('(opens in new tab)','')}
               when 'Phoenix New Times'
                 img_src = (Nokogiri.HTML(CGI.unescapeHTML(entry[:description])).xpath('//img').attribute('src').to_s rescue nil)
-                parts = article.css('.fdn-content-body').first.content.strip.split("\n\n")
+                parts = article.css('.article-content').first.content.strip.split("\n\n")
               when 'Reddit'
                 # post_type = article.css('shreddit-post').attribute('post-type').value
                 # case post_type
