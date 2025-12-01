@@ -18,7 +18,7 @@ class NewsWorker
   def scrape(sources=NewsSource.active, nocache=false)
     puts "Beginning run at #{Time.zone.now.in_time_zone('Arizona')}"
     threads = []
-    sources = [sources] unless sources.is_a?(Array)
+    sources = [sources] unless sources.respond_to?(:first)
     NewsSource.update_teddit_source
     sources.each(&:reload)
     sources.each do |source|
