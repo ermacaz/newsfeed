@@ -19,7 +19,7 @@ class NewsSourcesController < ApplicationController
     layout_order = params[:layout_order]
     
     layout_order.each do |item|
-      NewsSource.find(item[:id]).update!(list_order: item[:list_order])
+      NewsSource.find(item[:id]).update!(list_order: item[:list_order], :enabled=>item[:enabled])
     end
     NewsSource.update_index_cache
     render :status=>:ok
