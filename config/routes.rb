@@ -1,4 +1,6 @@
 Rails.application.routes.draw do
+  root "application#home"
+
   resources :news_sources do
     collection do
       get :get_news

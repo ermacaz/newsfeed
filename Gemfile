@@ -28,6 +28,7 @@ gem 'rack-cors'
 
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
 gem "thruster", require: false
+gem "vite_rails"
 
 gem 'simple-rss'
 gem 'httparty'
@@ -47,7 +48,7 @@ group :development do
 end
 
 group :production do
-  gem 'mysql2'
+  # gem 'mysql2'
 end
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem

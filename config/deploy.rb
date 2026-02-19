@@ -26,7 +26,7 @@ set :port, '5029'           # SSH port number.
 # Shared dirs and files will be symlinked into the app-folder by the 'deploy:link_shared_paths' step.
 # Some plugins already add folders to shared_dirs like `mina/rails` add `public/assets`, `vendor/bundle` and many more
 # run `mina -d` to see all folders and files already included in `shared_dirs` and `shared_files`
-set :shared_dirs, fetch(:shared_dirs, []).push('storage')
+set :shared_dirs, fetch(:shared_dirs, []).push('storage', 'node_modules')
 set :shared_files, fetch(:shared_files, []).push('config/database.yml', 'config/cable.yml', 'config/master.key')
 
 # This task is the environment that is loaded for all remote run commands, such as
@@ -68,6 +68,8 @@ task :deploy do
     command %{export PATH=:/usr/local/rvm/rubies/ruby-3.4.8/bin:$PATH}
     command %{bundle config set --local path 'vendor/bundle'}
     invoke :"bundle:install"
+    command %{yarn install --frozen-lockfile}
+    command %{RAILS_ENV=production bundle exec vite build}
     # command 'DISABLE_DATABASE_ENVIRONMENT_CHECK=1 RAILS_ENV=production bin/rails db:populate'
     command %{mkdir -p tmp/pids}
     invoke :'deploy:cleanup'
