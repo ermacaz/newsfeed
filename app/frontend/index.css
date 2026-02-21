@@ -21,7 +21,7 @@ body {
 }
 
 .newsSourceTitle {
-  textDecoration: 'underline';
+  text-decoration: underline;
   cursor: pointer;
   color: #bd93f9
 }
