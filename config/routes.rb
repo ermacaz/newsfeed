@@ -5,6 +5,7 @@ Rails.application.routes.draw do
     collection do
       get :get_news
       get :rss
+      get :all_sources
       post :update_layout
     end
   end

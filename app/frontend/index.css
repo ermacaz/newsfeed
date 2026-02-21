@@ -32,7 +32,32 @@ body {
 }
 
 .edit-order-entry {
-  color: white;
+  color: #f8f8f2;
+}
+
+.disabled-sources-container {
+  margin-top: 2rem;
+  padding: 1rem;
+  border: 1px solid #6272a4;
+  border-radius: 5px;
+  background-color: #44475a;
+}
+
+.disabled-sources-container h3 {
+  color: #F1FA8C;
+}
+
+.disabled-source-item {
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #282a36;
+  color: #ffb86c;
+  border-radius: 3px;
+  border-left: 3px solid #ff5555;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
 }
 
 .title-color {

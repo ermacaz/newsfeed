@@ -15,6 +15,18 @@ class NewsSourcesController < ApplicationController
     render :head=>:ok
   end
   
+  def all_sources
+    sources = NewsSource.all.in_order.map do |source|
+      {
+        source_id: source.id,
+        source_name: source.name,
+        enabled: source.enabled,
+        list_order: source.list_order
+      }
+    end
+    render json: sources
+  end
+
   def update_layout
     layout_order = params[:layout_order]
     
@@ -22,7 +34,7 @@ class NewsSourcesController < ApplicationController
       NewsSource.find(item[:id]).update!(list_order: item[:list_order], :enabled=>item[:enabled])
     end
     NewsSource.update_index_cache
-    render :status=>:ok
+    head :ok
   end
   
   def rss_feed

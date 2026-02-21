@@ -29,6 +29,7 @@ interface NewsSourceData {
 
 function NewsSourcesSet(): React.ReactElement {
   const [newsSources, setNewsSources] = React.useState<NewsSourceData[]>([]);
+  const [allSources, setAllSources] = React.useState<NewsSourceData[]>([]);
   const [showStoryDialog, setShowStoryDialog] = React.useState<Story | null>(null);
   const [showConnectionError, setShowConnectionError] = React.useState<number>(0);
   const [editOrderScreen, setEditOrderScreen] = React.useState(false);
@@ -66,8 +67,18 @@ function NewsSourcesSet(): React.ReactElement {
   }, [showStoryDialog]);
 
 
+  const getAllSourcesData = () => {
+    fetch('/news_sources/all_sources')
+      .then(res => res.json())
+      .then((sources: NewsSourceData[]) => setAllSources(sources))
+      .catch((error) => console.error('Error fetching all sources:', error));
+  };
+
   const toggleOrderScreen = () => {
-    setEditOrderScreen(!editOrderScreen)
+    if (!editOrderScreen) {
+      getAllSourcesData();
+    }
+    setEditOrderScreen(!editOrderScreen);
   };
 
   const newsSourceElements = (newsSourceTrio: NewsSourceData[]) => {
@@ -141,7 +152,7 @@ function NewsSourcesSet(): React.ReactElement {
     return (
       <>
         {renderOrderLink()}
-        <EditOrderArea toggleOrderScreen={toggleOrderScreen} newsSources={newsSources}/>
+        <EditOrderArea toggleOrderScreen={toggleOrderScreen} newsSources={allSources}/>
       </>
     )
   }

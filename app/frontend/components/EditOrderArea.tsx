@@ -1,6 +1,6 @@
 //component EditOrderArea
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import GridLayout from "react-grid-layout";
 import Button from "react-bootstrap/Button";
 
@@ -19,6 +19,13 @@ interface EditOrderAreaProps {
 function EditOrderArea({toggleOrderScreen, newsSources}: EditOrderAreaProps): React.ReactElement {
   // State to track enabled/disabled status
   const [sources, setSources] = useState(newsSources);
+
+  // Sync state when newsSources prop updates (async fetch completes after mount)
+  useEffect(() => {
+    if (newsSources.length > 0) {
+      setSources(newsSources);
+    }
+  }, [newsSources]);
 
   // Filter enabled and disabled sources
   const enabledSources = sources.filter(source => source.enabled !== false);
@@ -92,14 +99,16 @@ function EditOrderArea({toggleOrderScreen, newsSources}: EditOrderAreaProps): Re
       return {
         id: source.source_id.toString(),
         list_order: list_order !== null ? list_order : source.list_order,
-        enable: source.enabled !== false // Include enable status
+        enabled: source.enabled !== false
       };
     });
 
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     fetch('/news_sources/update_layout', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken,
       },
       body: JSON.stringify({layout_order: layoutParam}),
     })
@@ -120,7 +129,6 @@ function EditOrderArea({toggleOrderScreen, newsSources}: EditOrderAreaProps): Re
           <div
             key={source.source_id.toString()}
             className="disabled-source-item"
-            style={styles.disabledSourceItem}
           >
             {source.source_name}
             <Button
@@ -172,7 +180,7 @@ function EditOrderArea({toggleOrderScreen, newsSources}: EditOrderAreaProps): Re
         </GridLayout>
       </div>
 
-      <div className="disabled-sources-container" style={disabledSourcesContainerStyle}>
+      <div className="disabled-sources-container">
         <h3>Disabled Sources</h3>
         {renderDisabledSources()}
       </div>
@@ -180,27 +188,7 @@ function EditOrderArea({toggleOrderScreen, newsSources}: EditOrderAreaProps): Re
   )
 }
 
-// Styles for the disabled sources section
-const disabledSourcesContainerStyle: React.CSSProperties = {
-  marginTop: '2rem',
-  padding: '1rem',
-  border: '1px solid #ddd',
-  borderRadius: '5px',
-  backgroundColor: '#f8f9fa'
-};
-
-// Styles for the disabled source items
 const styles: { [key: string]: React.CSSProperties } = {
-  disabledSourceItem: {
-    padding: '0.5rem',
-    margin: '0.5rem 0',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: '3px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-  },
   buttonContainer: {
     pointerEvents: 'auto',
     zIndex: 2,
