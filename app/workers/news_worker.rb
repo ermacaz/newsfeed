@@ -3,6 +3,7 @@ class NewsWorker
   require 'open-uri'
   require 'nokogiri'
   require 'cgi'
+  require 'ferrum'
   
   NUM_STORIES = 25
   
@@ -55,6 +56,8 @@ class NewsWorker
                 article = Nokogiri.HTML(entry[:content_encoded])
               when 'NHK EasyNews'
                 article = nil
+              when 'New York Times'
+                article = fetch_with_browser(story[:link])
               else
                 article = Nokogiri.HTML(HTTParty.get(story[:link], :headers=>{'User-agent'=>'ermacaz'}).body)
               end
@@ -272,6 +275,65 @@ class NewsWorker
     return true
   end
   
+  STEALTH_JS = <<~JS
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+
+    Object.defineProperty(navigator, 'plugins', {
+      get: () => [
+        { name: 'Chrome PDF Plugin',  filename: 'internal-pdf-viewer',               description: 'Portable Document Format' },
+        { name: 'Chrome PDF Viewer',  filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai', description: '' },
+        { name: 'Native Client',      filename: 'internal-nacl-plugin',              description: '' },
+      ],
+    });
+
+    Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+
+    window.chrome = {
+      app: { isInstalled: false },
+      runtime: {
+        OnInstalledReason: { INSTALL: 'install', UPDATE: 'update', CHROME_UPDATE: 'chrome_update' },
+      },
+    };
+
+    const _origPermissions = window.navigator.permissions.query.bind(navigator.permissions);
+    window.navigator.permissions.query = (params) =>
+      params.name === 'notifications'
+        ? Promise.resolve({ state: Notification.permission })
+        : _origPermissions(params);
+
+    const _getParam = WebGLRenderingContext.prototype.getParameter;
+    WebGLRenderingContext.prototype.getParameter = function(p) {
+      if (p === 37445) return 'Intel Inc.';
+      if (p === 37446) return 'Intel Iris OpenGL Engine';
+      return _getParam.call(this, p);
+    };
+  JS
+
+  def fetch_with_browser(url)
+    browser = Ferrum::Browser.new(
+      headless: true,
+      timeout: 30,
+      browser_path: ENV.fetch('BROWSER_PATH', '/usr/bin/chromium'),
+      window_size: [1920, 1080],
+      args: [
+        '--no-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-blink-features=AutomationControlled',
+        '--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+      ]
+    )
+    browser.evaluate_on_new_document(STEALTH_JS)
+    browser.goto(url)
+    browser.network.wait_for_idle(timeout: 15)
+    Nokogiri.HTML(browser.body)
+  rescue => e
+    puts "Browser fetch failed for #{url}: #{e.message}"
+    nil
+  ensure
+    browser&.quit
+  end
+
   def img_src_filter(img_src)
     img_src = img_src&.to_s
     if img_src&.match?(/favicon/) || !img_src&.match?(/png|jpg|jpeg|gif|webp|webm/)
