@@ -3,7 +3,6 @@ class NewsWorker
   require 'open-uri'
   require 'nokogiri'
   require 'cgi'
-  require 'ferrum'
   
   NUM_STORIES = 25
   
@@ -56,8 +55,6 @@ class NewsWorker
                 article = Nokogiri.HTML(entry[:content_encoded])
               when 'NHK EasyNews'
                 article = nil
-              when 'New York Times'
-                article = fetch_with_browser(story[:link])
               else
                 article = Nokogiri.HTML(HTTParty.get(story[:link], :headers=>{'User-agent'=>'ermacaz'}).body)
               end
@@ -123,7 +120,21 @@ class NewsWorker
                 parts = article.css('#article-body').first.xpath("//p").map(&:content).map {|a| a.gsub('(opens in new tab)','')}
               when 'Phoenix New Times'
                 img_src = (Nokogiri.HTML(CGI.unescapeHTML(entry[:description])).xpath('//img').attribute('src').to_s rescue nil)
-                parts = article.css('.article-content').first.content.strip.split("\n\n")
+                content_node = article.css('.article-content').first
+                if content_node
+                  inline_items = []
+                  content_node.children.each do |child|
+                    case child.name
+                    when 'p'
+                      text = child.content.strip
+                      inline_items << text if text.present?
+                    when 'figure'
+                      src = child.css('img').first&.attribute('src')&.to_s
+                      inline_items << "IMAGE:#{src}" if src.present?
+                    end
+                  end
+                  parts = inline_items unless inline_items.empty?
+                end
               when 'Reddit'
                 # post_type = article.css('shreddit-post').attribute('post-type').value
                 # case post_type
@@ -237,9 +248,15 @@ class NewsWorker
               if story[:content].blank? && article  && source.name != 'Reddit'
                 unless defined?(parts) && parts
                   if article.xpath("//article").any?
-                    parts = (article.xpath("//article").first.xpath('//p').map(&:content) rescue article.xpath("//article").first.content.split("\n\n"))
+                    if source.name.downcase.in?(['朝日新聞', 'nhk', 'Just One Cookbook', 'No Recipes'])
+                      parts = (extract_content_with_images(article.xpath("//article").first) rescue article.xpath("//article").first.content.split("\n\n"))
+                    else
+                      parts = (article.xpath("//article").first.xpath('//p').map(&:content) rescue article.xpath("//article").first.content.split("\n\n"))
+                    end
+                    first_img_idx = parts.index { |p| p.is_a?(String) && p.start_with?("IMAGE:") }
+                    parts.delete_at(first_img_idx) if first_img_idx
                   else
-                    parts = article.xpath('//p').map(&:content)
+                    parts = extract_content_with_images(article)
                   end
                 end
                 parts = parts.map(&:strip).reject(&:blank?).reject {|a| a.length < 5 || a.match?(/^PC Gamer is part of Future US Inc|^PC Gamer is supported by its audience|Future US, Inc. Full 7th Floor|^Advertisement$|^Supported by$|^Send any friend a story$|^Follow Al Jazeera|^Sponsor Message|^Sign in|First Look Institute|^Credit\.\.\.$|^Photographs by|10 gift articles to give each month/)}
@@ -275,63 +292,19 @@ class NewsWorker
     return true
   end
   
-  STEALTH_JS = <<~JS
-    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-
-    Object.defineProperty(navigator, 'plugins', {
-      get: () => [
-        { name: 'Chrome PDF Plugin',  filename: 'internal-pdf-viewer',               description: 'Portable Document Format' },
-        { name: 'Chrome PDF Viewer',  filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai', description: '' },
-        { name: 'Native Client',      filename: 'internal-nacl-plugin',              description: '' },
-      ],
-    });
-
-    Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
-
-    window.chrome = {
-      app: { isInstalled: false },
-      runtime: {
-        OnInstalledReason: { INSTALL: 'install', UPDATE: 'update', CHROME_UPDATE: 'chrome_update' },
-      },
-    };
-
-    const _origPermissions = window.navigator.permissions.query.bind(navigator.permissions);
-    window.navigator.permissions.query = (params) =>
-      params.name === 'notifications'
-        ? Promise.resolve({ state: Notification.permission })
-        : _origPermissions(params);
-
-    const _getParam = WebGLRenderingContext.prototype.getParameter;
-    WebGLRenderingContext.prototype.getParameter = function(p) {
-      if (p === 37445) return 'Intel Inc.';
-      if (p === 37446) return 'Intel Iris OpenGL Engine';
-      return _getParam.call(this, p);
-    };
-  JS
-
-  def fetch_with_browser(url)
-    browser = Ferrum::Browser.new(
-      headless: true,
-      timeout: 30,
-      browser_path: ENV.fetch('BROWSER_PATH', '/usr/bin/chromium'),
-      window_size: [1920, 1080],
-      args: [
-        '--no-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--disable-blink-features=AutomationControlled',
-        '--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-      ]
-    )
-    browser.evaluate_on_new_document(STEALTH_JS)
-    browser.goto(url)
-    browser.network.wait_for_idle(timeout: 15)
-    Nokogiri.HTML(browser.body)
-  rescue => e
-    puts "Browser fetch failed for #{url}: #{e.message}"
-    nil
-  ensure
-    browser&.quit
+  def extract_content_with_images(node)
+    items = []
+    node.search('p, figure').each do |el|
+      case el.name
+      when 'p'
+        text = el.content.strip
+        items << text if text.present?
+      when 'figure'
+        src = el.css('img').first&.attribute('src')&.to_s
+        items << "IMAGE:#{src}" if src.present?
+      end
+    end
+    items
   end
 
   def img_src_filter(img_src)

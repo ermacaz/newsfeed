@@ -71,6 +71,10 @@ function EmbeddedStoryDialog({story, setShowStoryDialog}: EmbeddedStoryDialogPro
     return (
       <div className={'storyContent'}>
         {content.map((part, i) => {
+          if (part.startsWith('IMAGE:')) {
+            const src = part.slice(6);
+            return <img key={md5(story.link) + '-' + i} src={src} style={{maxWidth: '100%', margin: '1rem 0', display: 'block'}} alt="" />;
+          }
           return(
             <p key={md5(story.link) + '-' + i}>{part}</p>
           )
