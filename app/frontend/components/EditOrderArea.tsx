@@ -63,9 +63,10 @@ function EditOrderArea({toggleOrderScreen, newsSources}: EditOrderAreaProps): Re
       return (
         <div key={newsSource.source_id.toString()} className="edit-order-entry">
           <div className="source-content">
+            <span className="drag-handle">⠿</span>
             {newsSource.source_name}
           </div>
-          <div className="button-container" style={styles.buttonContainer}>
+          <div className="button-container">
             <Button
               variant="outline-danger"
               size="sm"
@@ -147,30 +148,13 @@ function EditOrderArea({toggleOrderScreen, newsSources}: EditOrderAreaProps): Re
 
   return (
     <div>
-      <style>
-        {`
-          .edit-order-entry {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px;
-            cursor: move;
-          }
-          .source-content {
-            flex-grow: 1;
-            cursor: move;
-          }
-          .button-container button {
-            cursor: pointer !important;
-          }
-        `}
-      </style>
       <div className="grid-container">
+        <p className="grid-area-header">Active Sources</p>
         <GridLayout
           className="layout"
           layout={layout}
           cols={3}
-          rowHeight={30}
+          rowHeight={60}
           autoSize={true}
           width={1200}
           draggableHandle=".source-content"
@@ -187,13 +171,5 @@ function EditOrderArea({toggleOrderScreen, newsSources}: EditOrderAreaProps): Re
     </div>
   )
 }
-
-const styles: { [key: string]: React.CSSProperties } = {
-  buttonContainer: {
-    pointerEvents: 'auto',
-    zIndex: 2,
-    position: 'relative'
-  }
-};
 
 export default EditOrderArea;

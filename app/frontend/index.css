@@ -31,8 +31,90 @@ body {
   cursor: pointer;
 }
 
+.grid-area-header {
+  color: #50fa7b;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.grid-container {
+  padding: 1rem;
+  background-color: #21222c;
+  border: 1px solid #6272a4;
+  border-radius: 6px;
+}
+
 .edit-order-entry {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  height: 100%;
+  background-color: #44475a;
+  border: 1px solid #6272a4;
+  border-top: 3px solid #bd93f9;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.edit-order-entry:hover {
+  border-color: #bd93f9;
+  box-shadow: 0 4px 14px rgba(189, 147, 249, 0.25);
+}
+
+.drag-handle {
+  color: #ff79c6;
+  cursor: grab;
+  margin-right: 10px;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.edit-order-entry:hover .drag-handle {
+  color: #ffb86c;
+}
+
+.source-content {
+  flex-grow: 1;
+  cursor: grab;
   color: #f8f8f2;
+  font-size: 0.95rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.source-content:active {
+  cursor: grabbing;
+}
+
+.button-container {
+  pointer-events: auto;
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.button-container button {
+  cursor: pointer !important;
+}
+
+.react-grid-item.react-grid-placeholder {
+  background: #bd93f9 !important;
+  opacity: 0.2 !important;
+  border-radius: 6px;
+}
+
+.react-resizable-handle {
+  display: none;
 }
 
 .disabled-sources-container {
@@ -45,6 +127,10 @@ body {
 
 .disabled-sources-container h3 {
   color: #F1FA8C;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
 }
 
 .disabled-source-item {
