@@ -7,9 +7,9 @@ class NewsWorker
   NUM_STORIES = 25
   
   if Rails.env == 'production'
-    ActiveStorage::Current.url_options = { protocol: 'https', host: 'newsfeedapi.ermacaz.com' }
+    ActiveStorage::Current.url_options = { protocol: 'https', host: 'newsfeed.ermacaz.com' }
   else
-    ActiveStorage::Current.url_options = { protocol: 'http', host: 'localhost', port: '3001' }
+    ActiveStorage::Current.url_options = { protocol: 'http', host: 'localhost', port: '3000' }
   end
   
   ## TODO

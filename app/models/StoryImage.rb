@@ -36,9 +36,9 @@ class StoryImage < ActiveStorage::Blob
   end
   def thumb_url
     if Rails.env == 'production'
-      ActiveStorage::Current.url_options = { protocol: 'https', host: 'newsfeedapi.ermacaz.com' }
+      ActiveStorage::Current.url_options = { protocol: 'https', host: 'newsfeed.ermacaz.com' }
     else
-      ActiveStorage::Current.url_options = { protocol: 'http', host: 'localhost', port: '3001' }
+      ActiveStorage::Current.url_options = { protocol: 'http', host: 'localhost', port: '3000' }
     end
     self.variant(resize_to_limit: [THUMB_WIDTH, nil]).url
   end
