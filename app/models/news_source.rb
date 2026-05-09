@@ -56,18 +56,14 @@ class NewsSource < ApplicationRecord
           feed_urls = self.feed_url.split(";")
           feeds = []
           feed_urls.each do |feed_url|
-            feeds << (SimpleRSS.parse URI.open(feed_url, 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36') rescue nil)
+            feeds << (SimpleRSS.parse fetch_feed_body(feed_url) rescue nil)
           end
-          @feed = feeds.map {|f| f.entries.first(25)}.flatten.uniq {|x| x[:title]}.sort {|x,y| y[:pubDate] <=> x[:pubDate]}.first(25)
+          @feed = feeds.compact.map {|f| f.entries.first(25)}.flatten.uniq {|x| x[:title]}.sort {|x,y| y[:pubDate] <=> x[:pubDate]}.first(25)
         else
-          if self.name == 'No Recipes'
-            @feed = (SimpleRSS.parse HTTParty.get(self.feed_url, :headers=>{'User-agent'=>'ermacaz'}) rescue nil)
-          else
-            @feed = (SimpleRSS.parse URI.open(self.feed_url, 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36') rescue nil)
-          end
+          @feed = (SimpleRSS.parse fetch_feed_body(self.feed_url) rescue nil)
         end
         if @feed.nil?
-          @feed = (SimpleRSS.parse HTTParty.get(self.feed_url, :headers=>{'User-agent'=>'ermacaz'}) rescue nil)
+          @feed = (SimpleRSS.parse HTTParty.get(self.feed_url, :headers=>{'User-agent'=>'ermacaz'}).body.to_s.force_encoding('UTF-8') rescue nil)
         end
       rescue Exception=>e
         Rails.logger.error("Error getting feed for source #{self.name}")
@@ -76,6 +72,15 @@ class NewsSource < ApplicationRecord
       end
     end
     @feed
+  end
+  
+  def fetch_feed_body(url)
+    if self.name == 'No Recipes'
+      body = HTTParty.get(url, :headers=>{'User-agent'=>'ermacaz'}).body.to_s
+    else
+      body = URI.open(url, 'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36').read
+    end
+    body.force_encoding('UTF-8')
   end
 
   def self.clear_all_caches

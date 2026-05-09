@@ -90,8 +90,12 @@ class NewsWorker
                 else
                   img_src = (Nokogiri.HTML(entry[:description]).xpath('//img').first.attr('src').encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
                 end
-                # img_src = (Nokogiri.HTML(entry[:description]).xpath('//img').first.attr('src').encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil)
-                story[:description] =  CGI.unescapeHTML((Nokogiri.HTML(entry[:description]).xpath("//p")[1].content.truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil))
+                # JOC's RSS description has two <p> blocks: [0] is the recipe blurb, [1] is the "READ: <title>" link. Pick the first non-"READ:" paragraph.
+                ps = (Nokogiri.HTML(entry[:description]).xpath("//p").map(&:content) rescue [])
+                blurb = ps.find { |t| t.present? && !t.strip.start_with?('READ:') }
+                if blurb
+                  story[:description] = CGI.unescapeHTML(blurb.truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?')).html_safe
+                end
               when "Kotaku"
                 story[:description] =  CGI.unescapeHTML((Nokogiri.HTML(entry[:description]).xpath("//p").first.content.truncate(1000).encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').html_safe rescue nil))
                 img_src = (Nokogiri.HTML(CGI.unescapeHTML(entry[:description])).xpath('//img').attribute('src').to_s rescue nil)
@@ -117,7 +121,8 @@ class NewsWorker
                 end
                 img_src = img_src_filter(img_src)
               when 'PC GAMER'
-                parts = article.css('#article-body').first.xpath("//p").map(&:content).map {|a| a.gsub('(opens in new tab)','')}
+                # `xpath("//p")` is absolute and would pull every <p> on the page (newsletter signup, footer, etc.) — use `.//p` to stay scoped to #article-body.
+                parts = (article.css('#article-body').first&.xpath(".//p")&.map(&:content)&.map {|a| a.gsub('(opens in new tab)','')} || [])
               when 'Phoenix New Times'
                 img_src = (Nokogiri.HTML(CGI.unescapeHTML(entry[:description])).xpath('//img').attribute('src').to_s rescue nil)
                 content_node = article.css('.article-content').first
@@ -248,7 +253,7 @@ class NewsWorker
               if story[:content].blank? && article  && source.name != 'Reddit'
                 unless defined?(parts) && parts
                   if article.xpath("//article").any?
-                    if source.name.downcase.in?(['朝日新聞', 'nhk', 'Just One Cookbook', 'No Recipes'])
+                    if source.name.downcase.in?(['朝日新聞', 'nhk', 'just one cookbook', 'no recipes'])
                       parts = (extract_content_with_images(article.xpath("//article").first) rescue article.xpath("//article").first.content.split("\n\n"))
                     else
                       parts = (article.xpath("//article").first.xpath('//p').map(&:content) rescue article.xpath("//article").first.content.split("\n\n"))
