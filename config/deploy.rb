@@ -17,6 +17,7 @@ set :repository, 'git@github.com:ermacaz/newsfeed.git'
 set :branch, 'master'
 set :rvm_path, '/usr/local/rvm/bin/rvm'
 set :rvm_use_path, '/usr/local/rvm/bin/rvm'
+set :version_scheme, :datetime
 
 # Optional settings:
 set :user, 'deploy'          # Username in the server to SSH to.
