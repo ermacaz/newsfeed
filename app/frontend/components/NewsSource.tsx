@@ -3,29 +3,13 @@ import Col from 'react-bootstrap/Col'
 import NewsStory from './NewsStory'
 import ShowHideSwitch from "./ShowHideSwitch";
 import Stack from "react-bootstrap/Stack";
-
-interface Story {
-  title: string;
-  link: string;
-  source: string;
-  media_url?: string;
-  media_url_thumb?: string;
-  content?: string | string[];
-  description?: string;
-}
-
-interface Source {
-  source_name: string;
-  source_url: string;
-  stories: Story[];
-}
+import { Story, NewsSourceData } from "../types";
 
 interface NewsSourceProps {
-  source: Source;
-  setShowStoryDialog: (story: Story | null) => void;
+  source: NewsSourceData;
 }
 
-function NewsSource({source, setShowStoryDialog}: NewsSourceProps): React.ReactElement {
+function NewsSource({source}: NewsSourceProps): React.ReactElement {
   const [hideExtraLinks, setHideExtraLinks] = React.useState(1);
 
   const handleClick = (e: React.MouseEvent) => {
@@ -44,7 +28,7 @@ function NewsSource({source, setShowStoryDialog}: NewsSourceProps): React.ReactE
   const newsStories = (stories: Story[]) => {
     return stories.map(function(story, index) {
       return (
-        <NewsStory key={index} story={story} setShowStoryDialog={setShowStoryDialog}/>
+        <NewsStory key={index} story={story}/>
       )
     })
   }
@@ -65,4 +49,4 @@ function NewsSource({source, setShowStoryDialog}: NewsSourceProps): React.ReactE
 
 }
 
-export default NewsSource;
+export default React.memo(NewsSource);

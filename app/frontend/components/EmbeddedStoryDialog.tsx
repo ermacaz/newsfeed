@@ -4,23 +4,15 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import {LazyLoadImage} from "react-lazy-load-image-component";
 import md5 from "md5";
-
-interface Story {
-  title: string;
-  link: string;
-  source: string;
-  media_url?: string;
-  media_url_thumb?: string;
-  content?: string | string[];
-  description?: string;
-}
+import { useStoryDialogActions } from "../contexts/StoryDialogContext";
+import { Story } from "../types";
 
 interface EmbeddedStoryDialogProps {
   story: Story;
-  setShowStoryDialog: (value: Story | null) => void;
 }
 
-function EmbeddedStoryDialog({story, setShowStoryDialog}: EmbeddedStoryDialogProps): React.ReactElement {
+function EmbeddedStoryDialog({story}: EmbeddedStoryDialogProps): React.ReactElement {
+  const { setShowStoryDialog } = useStoryDialogActions();
   const [showQuotes,setShowQuotes] = React.useState(false);
   const [quoteColor,setQuoteColor]   = React.useState("#6272A4");
   const onBackButtonEvent = (e: PopStateEvent) => {

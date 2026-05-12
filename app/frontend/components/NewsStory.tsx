@@ -7,23 +7,15 @@ import { LazyLoadImage } from "react-lazy-load-image-component";
 import sanitizeString from "../helpers/sanitizeString";
 import generateStoryUrl from "../helpers/generateStoryUrl";
 import md5 from "md5";
-
-interface Story {
-  title: string;
-  link: string;
-  source: string;
-  media_url?: string;
-  media_url_thumb?: string;
-  content?: string | string[];
-  description?: string;
-}
+import { useStoryDialogActions } from "../contexts/StoryDialogContext";
+import { Story } from "../types";
 
 interface NewsStoryProps {
   story: Story;
-  setShowStoryDialog: (story: Story | null) => void;
 }
 
-function NewsStory({story, setShowStoryDialog}: NewsStoryProps): React.ReactElement {
+function NewsStory({story}: NewsStoryProps): React.ReactElement {
+  const { setShowStoryDialog } = useStoryDialogActions();
 
 
   const renderTooltip = () => (
@@ -97,7 +89,7 @@ function NewsStory({story, setShowStoryDialog}: NewsStoryProps): React.ReactElem
 }
 
 
-export default NewsStory
+export default React.memo(NewsStory)
 
 
 const imgColStyle: React.CSSProperties = {

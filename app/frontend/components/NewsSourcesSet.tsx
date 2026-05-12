@@ -7,25 +7,8 @@ import EditOrderArea from "./EditOrderArea";
 
 import NewsSource from './NewsSource';
 import EmbeddedStoryDialog from "./EmbeddedStoryDialog";
-
-interface Story {
-  title: string;
-  link: string;
-  source: string;
-  media_url?: string;
-  media_url_thumb?: string;
-  content?: string | string[];
-  description?: string;
-}
-
-interface NewsSourceData {
-  source_name: string;
-  source_url: string;
-  stories: Story[];
-  source_id: number;
-  enabled: boolean;
-  list_order: number;
-}
+import { StoryDialogProvider } from "../contexts/StoryDialogContext";
+import { Story, NewsSourceData } from "../types";
 
 function NewsSourcesSet(): React.ReactElement {
   const [newsSources, setNewsSources] = React.useState<NewsSourceData[]>([]);
@@ -83,7 +66,7 @@ function NewsSourcesSet(): React.ReactElement {
 
   const newsSourceElements = (newsSourceTrio: NewsSourceData[]) => {
     return newsSourceTrio.map(function(source) {
-      return <NewsSource key={source.source_name} source={source} setShowStoryDialog={setShowStoryDialog}/>
+      return <NewsSource key={source.source_name} source={source}/>
     })
   }
 
@@ -170,13 +153,15 @@ function NewsSourcesSet(): React.ReactElement {
     }).filter(x=>!!x);
     if (newsSourcesSet.length > 0) {
       return (
-        <div>
-          {showSources(newsSourcesSet)}
-          {showStoryDialog !== null &&
-            <EmbeddedStoryDialog story={showStoryDialog} setShowStoryDialog={setShowStoryDialog}/>
-          }
-          {renderOrderLink()}
-        </div>
+        <StoryDialogProvider showStoryDialog={showStoryDialog} setShowStoryDialog={setShowStoryDialog}>
+          <div>
+            {showSources(newsSourcesSet)}
+            {showStoryDialog !== null &&
+              <EmbeddedStoryDialog story={showStoryDialog}/>
+            }
+            {renderOrderLink()}
+          </div>
+        </StoryDialogProvider>
       )
     } else {
       return (
