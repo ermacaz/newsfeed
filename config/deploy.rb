@@ -38,7 +38,7 @@ task :remote_environment do
   # invoke :'rbenv:load'
   
   # For those using RVM, use this to load an RVM version@gemset.
-  invoke :'rvm:use', 'ruby-3.4.8@default'
+  invoke :'rvm:use', 'ruby-4.0.4@default'
 end
 
 # Put any custom commands you need to run at setup
@@ -64,9 +64,9 @@ task :deploy do
     invoke :'git:clone'
     invoke :'deploy:link_shared_paths'
     command %{export PATH=/usr/local/rvm/bin:$PATH}
-    command %{export PATH=/usr/local/rvm/gems/ruby-3.4.8/bin:$PATH}
-    command %{export PATH=/usr/local/rvm/gems/ruby-3.4.8@global/bin:$PATH}
-    command %{export PATH=:/usr/local/rvm/rubies/ruby-3.4.8/bin:$PATH}
+    command %{export PATH=/usr/local/rvm/gems/ruby-4.0.4/bin:$PATH}
+    command %{export PATH=/usr/local/rvm/gems/ruby-4.0.4@global/bin:$PATH}
+    command %{export PATH=:/usr/local/rvm/rubies/ruby-4.0.4/bin:$PATH}
     command %{bundle config set --local path 'vendor/bundle'}
     invoke :"bundle:install"
     command %{yarn install --frozen-lockfile}
@@ -91,9 +91,9 @@ end
 task :wipe_caches do
   command %{cd /var/www/newsfeed/current}
   command %{export PATH=/usr/local/rvm/bin:$PATH}
-  command %{export PATH=/usr/local/rvm/gems/ruby-3.4.8/bin:$PATH}
-  command %{export PATH=/usr/local/rvm/gems/ruby-3.4.8@global/bin:$PATH}
-  command %{export PATH=:/usr/local/rvm/rubies/ruby-3.4.8/bin:$PATH}
+  command %{export PATH=/usr/local/rvm/gems/ruby-4.0.4/bin:$PATH}
+  command %{export PATH=/usr/local/rvm/gems/ruby-4.0.4@global/bin:$PATH}
+  command %{export PATH=:/usr/local/rvm/rubies/ruby-4.0.4/bin:$PATH}
   command %{bundle config set --local path 'vendor/bundle'}
   command %{RAILS_ENV=production bin/rails wipe_caches}
 end
