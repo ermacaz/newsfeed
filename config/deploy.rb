@@ -19,6 +19,11 @@ set :rvm_path, '/usr/local/rvm/bin/rvm'
 set :rvm_use_path, '/usr/local/rvm/bin/rvm'
 set :version_scheme, :datetime
 
+# Modern Bundler (2.6+) removed the --without/--path/--deployment CLI flags
+# that mina-1.2.5 still hard-codes in :bundle_options. Override to empty and
+# configure those via `bundle config` below before invoke :"bundle:install".
+set :bundle_options, ''
+
 # Optional settings:
 set :user, 'deploy'          # Username in the server to SSH to.
 set :port, '5029'           # SSH port number.
@@ -68,6 +73,8 @@ task :deploy do
     command %{export PATH=/usr/local/rvm/gems/ruby-4.0.4@global/bin:$PATH}
     command %{export PATH=:/usr/local/rvm/rubies/ruby-4.0.4/bin:$PATH}
     command %{bundle config set --local path 'vendor/bundle'}
+    command %{bundle config set --local deployment 'true'}
+    command %{bundle config set --local without 'development:test'}
     invoke :"bundle:install"
     command %{yarn install --frozen-lockfile}
     command %{RAILS_ENV=production bundle exec vite build}
